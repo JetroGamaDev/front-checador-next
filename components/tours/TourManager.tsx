@@ -12,10 +12,10 @@ import { findTour, WELCOME_TOUR, type Tour, type TourContext } from "@/lib/tours
 import { isVisible } from "@/lib/tours/targets";
 
 const STORAGE_PREFIX = "gama-tours:";
-const CHECK_EVERY_MS = 1000;
+const CHECK_EVERY_MS = 300;
 // La pantalla debe estar quieta (sin modales ni cargas) este tiempo antes de abrir un tutorial,
-// porque algunos avisos de inicio (crear contraseña, pendientes de firmar) tardan en aparecer
-const CALM_MS = 3000;
+// para no arrancar mientras la página termina de pintarse. Los avisos de inicio ya se esperan aparte (autoStart)
+const CALM_MS = 600;
 
 // ---------- Tutoriales vistos (por usuario, en este navegador) ----------
 type SeenMap = Record<string, number>;
