@@ -466,3 +466,72 @@
 .badge-grow:hover {
     transform: scale(1.2);
 }
+
+/* Tutoriales guiados (driver.js): usan los colores del tema, así se ven bien en claro y oscuro */
+.gama-tour.driver-popover {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 12px;
+  max-width: 340px;
+  padding: 18px;
+  font-family: inherit;
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.25);
+}
+
+.gama-tour .driver-popover-title {
+  font-size: 1.05rem;
+  color: var(--bs-emphasis-color);
+}
+
+.gama-tour .driver-popover-description {
+  font-size: 0.9rem;
+  color: var(--bs-body-color);
+}
+
+.gama-tour .driver-popover-progress-text {
+  color: var(--bs-secondary-color);
+  font-size: 0.8rem;
+}
+
+.gama-tour .driver-popover-close-btn {
+  color: var(--bs-secondary-color);
+}
+
+.gama-tour .driver-popover-close-btn:hover {
+  color: var(--bs-emphasis-color);
+}
+
+.gama-tour .driver-popover-footer-btn {
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  text-shadow: none;
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.gama-tour .driver-popover-footer-btn:hover,
+.gama-tour .driver-popover-footer-btn:focus {
+  background-color: var(--bs-secondary-bg);
+}
+
+.gama-tour .driver-popover-next-btn {
+  color: #fff;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+}
+
+.gama-tour .driver-popover-next-btn:hover,
+.gama-tour .driver-popover-next-btn:focus {
+  color: #fff;
+  background-color: var(--bs-primary);
+  filter: brightness(0.92);
+}
+
+/* La flecha toma el color del globo en el lado que apunta */
+.gama-tour .driver-popover-arrow-side-left { border-left-color: var(--bs-body-bg); }
+.gama-tour .driver-popover-arrow-side-right { border-right-color: var(--bs-body-bg); }
+.gama-tour .driver-popover-arrow-side-top { border-top-color: var(--bs-body-bg); }
+.gama-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--bs-body-bg); }
