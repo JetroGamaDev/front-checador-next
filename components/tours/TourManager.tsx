@@ -80,15 +80,10 @@ export default function TourManager({ autoStart }: { autoStart: boolean }) {
 
   const user = session?.user;
   const userId = user?.id ? String(user.id) : null;
-  // Sin tutoriales para el checador ni para quien los apagó en su perfil ("Mostrar tutoriales")
-  const enabled = !!userId && user?.role !== "CHECADOR" && user?.enableTutorials !== false;
-
-  // Si se apagan con un recorrido abierto, se cierra sin marcarlo como visto
-  useEffect(() => {
-    if (enabled || !driverRef.current) return;
-    interruptedRef.current = true;
-    driverRef.current.destroy();
-  }, [enabled]);
+  // Sin tutoriales para el checador. El botón "?" siempre está disponible para los demás;
+  // "Mostrar tutoriales" del perfil solo apaga los recorridos que se abren solos
+  const enabled = !!userId && user?.role !== "CHECADOR";
+  const autoEnabled = enabled && user?.enableTutorials !== false;
 
   const context = useCallback(
     (): TourContext => ({ pathname, params: new URLSearchParams(searchParams?.toString() ?? "") }),
@@ -134,7 +129,7 @@ export default function TourManager({ autoStart }: { autoStart: boolean }) {
   // Revisa cada poco si la pantalla actual tiene un tutorial que el usuario no ha visto.
   // Se revisa en intervalos porque varias pantallas cambian sin cambiar la URL (por ejemplo "Crear permiso").
   useEffect(() => {
-    if (!enabled || !autoStart || !userId) return;
+    if (!autoEnabled || !autoStart || !userId) return;
     calmSinceRef.current = 0;
     const timer = window.setInterval(() => {
       const busy = screenIsBusy();
@@ -158,7 +153,7 @@ export default function TourManager({ autoStart }: { autoStart: boolean }) {
       start(tour);
     }, CHECK_EVERY_MS);
     return () => window.clearInterval(timer);
-  }, [enabled, autoStart, userId, context, start]);
+  }, [autoEnabled, autoStart, userId, context, start]);
 
   // Al cambiar de pantalla o cerrar sesión se cierra el tutorial abierto
   useEffect(() => () => driverRef.current?.destroy(), [pathname]);

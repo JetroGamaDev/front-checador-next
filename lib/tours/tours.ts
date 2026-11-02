@@ -125,7 +125,7 @@ const TOURS: Tour[] = [
       { target: button("Cambiar contraseña"), title: "Cambiar contraseña", text: "Escribe tu nueva contraseña dos veces y guárdala.", side: "bottom" },
       { target: label("Foto de perfil", ".card"), title: "Foto de perfil", text: "Da clic en la imagen, elige una foto (.jpg o .png) y da clic en <b>Guardar foto</b>.", side: "right" },
       { target: label("Verificación en dos pasos", ".card"), title: "Verificación en dos pasos", text: "Protege tu cuenta: además de tu contraseña, al entrar se pide un código de Google Authenticator. Si cambias de celular, pide a Recursos Humanos que la reinicie.", side: "top" },
-      { target: label("Tutoriales", ".card"), title: "Tutoriales", text: "Si ya no quieres ver estos recorridos, apaga <b>Mostrar tutoriales</b>. Puedes volver a encenderlos cuando quieras.", side: "top" },
+      { target: label("Tutoriales", ".card"), title: "Tutoriales", text: "Si no quieres que estos recorridos se abran solos, apaga <b>Mostrar tutoriales</b>. Siempre podrás verlos con el botón <b>?</b> de abajo a la derecha.", side: "top" },
     ],
   },
 

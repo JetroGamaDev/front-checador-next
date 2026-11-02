@@ -70,7 +70,7 @@ export default function TutorialsCard({ enableTutorials }: { enableTutorials: bo
               <span>
                 {enabled
                   ? "Al entrar por primera vez a cada pantalla verás un recorrido guiado."
-                  : "No se mostrarán recorridos guiados en ninguna pantalla."}
+                  : "Los recorridos ya no se abrirán solos. Puedes verlos con el botón ? de abajo a la derecha."}
               </span>
             </div>
 
