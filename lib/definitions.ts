@@ -44,6 +44,8 @@ export interface User {
   roles: IRolesMe;
   twoFactorEnabled?: boolean;
   twoFactorPending?: boolean;
+  // "Mostrar tutoriales" del perfil (si el back no lo manda se considera true)
+  enableTutorials?: boolean;
   sessionType?: 'user' | 'employee';
   idCheck?: number | null;
   // Empleado que aún entra con su NIP: se le ofrece crear su contraseña del sistema

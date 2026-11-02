@@ -11,6 +11,7 @@ import ChangePasswordModal from "@/app/(auth)/app/users/views/ModalChangePasswor
 import ProfileError from "./profileMessageError";
 import { formatLabel } from "../devices/DevicesTableClient";
 import TwoFactorCard from "./TwoFactorCard";
+import TutorialsCard from "./TutorialsCard";
 
 
 function formatText(value?: string | number | null) {
@@ -229,6 +230,9 @@ export default function UserProfileView({
               <ConditionalRender cond={showTwoFactor}>
                 <Col xs={12}>
                   <TwoFactorCard twoFactorEnabled={twoFactorEnabled} />
+                </Col>
+                <Col xs={12}>
+                  <TutorialsCard enableTutorials={me?.enableTutorials !== false} />
                 </Col>
               </ConditionalRender>
             </Row>

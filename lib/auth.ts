@@ -44,6 +44,7 @@ export const authOptions = {
           roles: userData.roles,
           twoFactorEnabled: userData.twoFactorEnabled === true,
           twoFactorPending: userData.twoFactorPending === true,
+          enableTutorials: userData.enableTutorials !== false,
           sessionType: userData.sessionType,
         };
       },
@@ -82,7 +83,18 @@ export const authOptions = {
           token.roles = userData.roles;
           token.twoFactorEnabled = userData.twoFactorEnabled === true;
           token.twoFactorPending = userData.twoFactorPending === true;
+          token.enableTutorials = userData.enableTutorials !== false;
           token.sessionType = userData.sessionType;
+        }
+      }
+
+      // Al cambiar "Mostrar tutoriales" en el perfil, el valor se vuelve a leer de /me
+      // con el token actual (no se toma lo que manda el cliente)
+      if (trigger === "update" && session?.refreshTutorials && token.apiToken) {
+        const meData = await getUserData({ apiToken: String(token.apiToken) });
+        const userData = meData.data as unknown as User;
+        if (meData.success && userData?.id) {
+          token.enableTutorials = userData.enableTutorials !== false;
         }
       }
 
@@ -100,6 +112,7 @@ export const authOptions = {
         token.roles = user.roles;
         token.twoFactorEnabled = user.twoFactorEnabled;
         token.twoFactorPending = user.twoFactorPending;
+        token.enableTutorials = user.enableTutorials;
         token.sessionType = user.sessionType;
       }
       return token;
@@ -119,6 +132,8 @@ export const authOptions = {
         session.user.roles = token.roles as IRolesMe;
         session.user.twoFactorEnabled = token.twoFactorEnabled === true;
         session.user.twoFactorPending = token.twoFactorPending === true;
+        // Las sesiones iniciadas antes de este campo no lo traen: se muestran los tutoriales
+        session.user.enableTutorials = token.enableTutorials !== false;
         session.user.sessionType = token.sessionType as "user" | "employee" | undefined;
       }
       return session;

@@ -15,6 +15,7 @@ import { loadAvatar } from "@/app/actions/user-actions";
 import { createUserImage, deleteUserImage } from "@/app/actions/image-field-actions";
 import ProfileError from "./profileMessageError";
 import TwoFactorCard from "./TwoFactorCard";
+import TutorialsCard from "./TutorialsCard";
 import PasswordSystemModal from "./PasswordSystemModal";
 
 type FeedbackState = "loading" | "success" | "error" | null;
@@ -256,6 +257,10 @@ export default function EmployeeProfileView({
 
               <Col xs={12}>
                 <TwoFactorCard twoFactorEnabled={me.twoFactorEnabled === true} />
+              </Col>
+
+              <Col xs={12}>
+                <TutorialsCard enableTutorials={me.enableTutorials !== false} />
               </Col>
             </Row>
           </Card.Body>

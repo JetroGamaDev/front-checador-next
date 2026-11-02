@@ -77,6 +77,16 @@ export async function getPrimaAnual(idPeriod: string): Promise<ActionResponse<{ 
         const url = `${API_URL}/incidences/annualPremium/${idPeriod}`;
 
 
+        // El back regresa el .xlsx como archivo; si algo falla regresa JSON con `message`.
+        // Se pide como binario y, en error, se decodifica el JSON para mostrar su mensaje.
+        const readMessage = (data: unknown, fallback: string) => {
+            try {
+                return JSON.parse(Buffer.from(data as ArrayBuffer).toString("utf8"))?.message || fallback;
+            } catch {
+                return fallback;
+            }
+        };
+
         await axios.get(url, {
                 headers: {
                     Authorization: `Bearer ${apiToken}`,
@@ -84,15 +94,16 @@ export async function getPrimaAnual(idPeriod: string): Promise<ActionResponse<{ 
                 responseType: "arraybuffer",
             })
             .then((res) => {
+                // Un JSON con estado 200 no es el archivo: se trata como error para no descargar un Excel dañado
+                if (String(res.headers["content-type"] ?? "").includes("application/json")) {
+                    throw new Error("El servidor no regresó el archivo del reporte. Intenta de nuevo más tarde.");
+                }
                 const base64 = Buffer.from(res.data).toString("base64");
                 base64Url = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
             })
             .catch((err) => {
-                throw new Error(
-                    err.response?.data?.message
-                        ? err.response.data.message
-                        : "Error al generar el reporte"
-                );
+                if (!axios.isAxiosError(err)) throw err;
+                throw new Error(readMessage(err.response?.data, "Error al generar el reporte"));
             });
 
         return {
@@ -100,7 +111,7 @@ export async function getPrimaAnual(idPeriod: string): Promise<ActionResponse<{ 
             message: "Reporte generado correctamente",
             data: {
                 base64Url,
-                fileName: `reporte_PrimaAnual${idPeriod}.xlsx`,
+                fileName: `reporte_PrimaAnual_${idPeriod}.xlsx`,
             },
         };
     } catch (error: unknown) {

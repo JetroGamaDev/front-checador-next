@@ -80,7 +80,15 @@ export default function TourManager({ autoStart }: { autoStart: boolean }) {
 
   const user = session?.user;
   const userId = user?.id ? String(user.id) : null;
-  const enabled = !!userId && user?.role !== "CHECADOR";
+  // Sin tutoriales para el checador ni para quien los apagó en su perfil ("Mostrar tutoriales")
+  const enabled = !!userId && user?.role !== "CHECADOR" && user?.enableTutorials !== false;
+
+  // Si se apagan con un recorrido abierto, se cierra sin marcarlo como visto
+  useEffect(() => {
+    if (enabled || !driverRef.current) return;
+    interruptedRef.current = true;
+    driverRef.current.destroy();
+  }, [enabled]);
 
   const context = useCallback(
     (): TourContext => ({ pathname, params: new URLSearchParams(searchParams?.toString() ?? "") }),

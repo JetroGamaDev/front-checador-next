@@ -165,6 +165,34 @@ export async function getUserData({
   }
 }
 
+// "Mostrar tutoriales" del perfil. Sirve igual para sesiones de usuario y de empleado (usa el token de la sesión)
+export async function updateTutorialsPreference(
+  enableTutorials: boolean
+): Promise<ActionResponse<{ enableTutorials: boolean }>> {
+  try {
+    const { API_URL, apiToken } = await storeAction();
+
+    const { data } = await axios.put(
+      `${API_URL}/me/tutorials`,
+      { enableTutorials: enableTutorials === true },
+      { headers: { Authorization: `Bearer ${apiToken}` } }
+    );
+
+    return {
+      success: true,
+      message: data?.message ?? "Preferencia actualizada",
+      data: { enableTutorials: data?.data?.enableTutorials === true },
+    };
+  } catch (error: unknown) {
+    console.log(error);
+    let message = "No se pudo actualizar la preferencia de tutoriales";
+    if (axios.isAxiosError(error)) {
+      message = error.response?.data?.message || error.message || message;
+    }
+    return { success: false, message };
+  }
+}
+
 export async function fetchUsersPages(args: FetchUsersArgs = {}): Promise<{
   data: User[];
   total: number;

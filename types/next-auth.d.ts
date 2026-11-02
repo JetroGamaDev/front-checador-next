@@ -13,6 +13,8 @@ declare module "next-auth" {
     roles:IRolesMe
     twoFactorEnabled?: boolean;
     twoFactorPending?: boolean;
+    // Preferencia del perfil "Mostrar tutoriales" (viene de /me; las sesiones viejas no la traen = true)
+    enableTutorials?: boolean;
     // "employee": entró con número de empleado y NIP/contraseña; "user": usuario del sistema
     sessionType?: "user" | "employee";
   }
