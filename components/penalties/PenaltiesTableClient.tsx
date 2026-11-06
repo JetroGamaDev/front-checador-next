@@ -39,6 +39,7 @@ export default function PenaltiesTableClient({
 }) {
     //Aqui los const
     const session = useSessionSnapshot();
+    const roles = session?.uid?.roles;
     const router = useRouter();
     const sp = useSearchParams();
     const isClearingSelectionRef = useRef(false);
@@ -59,6 +60,12 @@ export default function PenaltiesTableClient({
 
     const totalPages = Math.ceil(total / limit);
     const MAX_VISIBLE = 5;
+
+    const readInput = !roles?.isLeader
+        && !roles?.isExtra
+        && !roles?.isDoh
+        && !roles?.isApproverLeaders
+        && !roles?.isApproverDoh;
 
     const visiblePages = useMemo(() => {
         if (totalPages <= MAX_VISIBLE) {
@@ -570,12 +577,14 @@ export default function PenaltiesTableClient({
                                                                         Ver
                                                                     </a>
 
-                                                                    <a
-                                                                        className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
-                                                                        onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
-                                                                    >
-                                                                        {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
-                                                                    </a>
+                                                                    <ConditionalRender cond={!readInput}>
+                                                                        <a
+                                                                            className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
+                                                                            onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
+                                                                        >
+                                                                            {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
+                                                                        </a>
+                                                                    </ConditionalRender>
                                                                 </div>
                                                             </td>
                                                         </tr>

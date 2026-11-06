@@ -140,21 +140,22 @@ export function PenaltyOne({
                             </Button>
                         </OverLay> */}
 
+                        <ConditionalRender cond={!readInput}>
+                            <OverLay string="Eliminar registro">
+                                <Button
+                                    className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
+                                    variant="danger"
+                                    onClick={() => setShowDeleteModal(true)}
+                                    disabled={loading}
+                                >
+                                    <i className="bi bi-trash" />
 
-                        <OverLay string="Eliminar registro">
-                            <Button
-                                className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                                variant="danger"
-                                onClick={() => setShowDeleteModal(true)}
-                                disabled={loading}
-                            >
-                                <i className="bi bi-trash" />
-
-                                <span className="d-none d-md-inline ms-2">
-                                    Eliminar penalización
-                                </span>
-                            </Button>
-                        </OverLay>
+                                    <span className="d-none d-md-inline ms-2">
+                                        Eliminar penalización
+                                    </span>
+                                </Button>
+                            </OverLay>
+                        </ConditionalRender>
 
                         <OverLay string="Firmar">
                             <ConditionalRender cond={showCurrentUser}>
