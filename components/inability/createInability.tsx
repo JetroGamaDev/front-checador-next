@@ -1,6 +1,6 @@
 "use client";
 
-import { createInability, IInabilityFormData, IResponseInabilityCreate, uploadFirstInhabilityDocument } from "@/app/actions/inability-actions";
+import { createInability, uploadFirstInhabilityDocument } from "@/app/actions/inability-actions";
 import ConditionalRender from "@/components/ConditionalRender";
 import Loading from "@/components/LoadingSpinner";
 import { Entry, FieldSelect, RelationField } from "@/components/fields";
@@ -173,7 +173,7 @@ export default function CreateInabilityComponent({
 
   const onSubmit: SubmitHandler<TInputs> = async (data) => {
     modalConfirm("¿Seguro que quieres guardar esta incapacidad?", async () => {
-      let createdId: string | null = null;
+      // let createdId: string | null = null;
   
       try {
         setFeedback("loading");
@@ -203,7 +203,7 @@ export default function CreateInabilityComponent({
           setFeedback("error");
           return;
         }
-        createdId = res.data?.id ?? null;
+        // createdId = res.data?.id ?? null;
   
         // 2. Archivo (ya comprimido si hacía falta)
         if (file) {

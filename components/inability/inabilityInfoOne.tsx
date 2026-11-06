@@ -21,6 +21,7 @@ import ErrorOverlay from "../ErrorOverlay";
 import { formatCreatedAtOnlyHours, formatDateMx } from "@/lib/helpers";
 import { IInability } from "@/lib/inhability/interface";
 import DeleteInhabilityModal from "./DeleteInhabilityModal";
+import { useSessionSnapshot } from "@/hooks/useSessionStore";
 
 // type TInputs = {
 //   idEmployee: number | null;
@@ -87,6 +88,8 @@ export default function InfoOneInability({
   employees?: Employee[];
   id: string;
 }) {
+  const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
   const [modalUploadDoc, setModalUploadDoc] = useState(false);
   const [showUpdateInabilityModal, setShowUpdateInabilityModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,6 +112,11 @@ export default function InfoOneInability({
     );
   }
 
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
 
   const employee =
     employees.find((em) => Number(em.id) === Number(inhability.idEmployee)) ??
@@ -155,50 +163,54 @@ export default function InfoOneInability({
         <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
           <div className="d-flex gap-2 flex-wrap">
 
-            <OverLay string="Crear incapacidad">
-              <Button
-                className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="primary"
-                onClick={handleCreate}
-                disabled={loading}
-              >
-                <i className="bi bi-plus-lg" />
-                <span className="d-none d-md-inline ms-2">
-                  Crear Incapacidad
-                </span>
-              </Button>
-            </OverLay>
-
-            <ConditionalRender cond={id !== "null"}>
-              <OverLay string="Actualizar incapacidad">
+            <ConditionalRender cond={!readInput}>
+              <OverLay string="Crear incapacidad">
                 <Button
                   className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
                   variant="primary"
-                  onClick={() => setShowUpdateInabilityModal(true)}
+                  onClick={handleCreate}
                   disabled={loading}
                 >
-                  <i className="bi bi-pencil" />
+                  <i className="bi bi-plus-lg" />
                   <span className="d-none d-md-inline ms-2">
-                    Actualizar Incapacidad
+                    Crear Incapacidad
+                  </span>
+                </Button>
+              </OverLay>
+
+
+              <ConditionalRender cond={id !== "null"}>
+                <OverLay string="Actualizar incapacidad">
+                  <Button
+                    className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
+                    variant="info"
+                    onClick={() => setShowUpdateInabilityModal(true)}
+                    disabled={loading}
+                  >
+                    <i className="bi bi-pencil" />
+                    <span className="d-none d-md-inline ms-2">
+                      Actualizar Incapacidad
+                    </span>
+                  </Button>
+                </OverLay>
+              </ConditionalRender>
+
+              <OverLay string="Eliminar registro">
+                <Button
+                  className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
+                  variant="danger"
+                  onClick={() => setShowDeleteModal(true)}
+                  disabled={loading}
+                >
+                  <i className="bi bi-trash" />
+
+                  <span className="d-none d-md-inline ms-2">
+                    Eliminar incapacidad
                   </span>
                 </Button>
               </OverLay>
             </ConditionalRender>
 
-            <OverLay string="Eliminar registro">
-              <Button
-                className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="danger"
-                onClick={() => setShowDeleteModal(true)}
-                disabled={loading}
-              >
-                <i className="bi bi-trash" />
-
-                <span className="d-none d-md-inline ms-2">
-                  Eliminar incapacidad
-                </span>
-              </Button>
-            </OverLay>
           </div>
 
           <div className=" d-md-flex flex-wrap">
@@ -309,7 +321,7 @@ export default function InfoOneInability({
                       <div>
                         <h6 className="mb-1 fw-bold">Detalles del registro</h6>
                         <p className="text-muted mb-0 small">
-                          Consulta las fechas, el folio y las notas extra de la incapacidad.
+                          {readInput ? "Consulta los detalles de la incapacidad." : "Consulta las fechas, el folio y las notas extra de la incapacidad."}
                         </p>
                       </div>
                       <span className="badge rounded-pill px3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle">
@@ -319,15 +331,17 @@ export default function InfoOneInability({
 
                     <div className="d-flex flex-column gap-4">
 
-                      <div className="border rounded-3 p-3">
-                        <div className="d-flex align-items-center gap-2 mb-2">
-                          <i className="bi bi-journal-text text-primary" />
-                          <span className="text-muted fw-semibold">Notas adicionales</span>
+                      <ConditionalRender cond={!readInput}>
+                        <div className="border rounded-3 p-3">
+                          <div className="d-flex align-items-center gap-2 mb-2">
+                            <i className="bi bi-journal-text text-primary" />
+                            <span className="text-muted fw-semibold">Notas adicionales</span>
+                          </div>
+                          <div className="text-uppercase">
+                            {inhability.notes ? inhability.notes : "No hay notas adicionales"}
+                          </div>
                         </div>
-                        <div className="text-uppercase">
-                          {inhability.notes ? inhability.notes : "No hay notas adicionales"}
-                        </div>
-                      </div>
+                      </ConditionalRender>
 
                       <Row className="g-3">
                         <Col xs={12} md={6} xl={6}>
@@ -414,16 +428,18 @@ export default function InfoOneInability({
                       </div>
                     </div>
 
-                    <OverLay string="Agregar documento">
-                      <Button
-                        onClick={() => setModalUploadDoc(true)}
-                        className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 flex-shrink-0"
-                        variant="primary"
-                      >
-                        <i className="bi bi-plus-lg" />
-                        <span className="d-none d-md-inline ms-2">Nuevo documento</span>
-                      </Button>
-                    </OverLay>
+                    <ConditionalRender cond={!readInput}>
+                      <OverLay string="Agregar documento">
+                        <Button
+                          onClick={() => setModalUploadDoc(true)}
+                          className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 flex-shrink-0"
+                          variant="primary"
+                        >
+                          <i className="bi bi-plus-lg" />
+                          <span className="d-none d-md-inline ms-2">Nuevo documento</span>
+                        </Button>
+                      </OverLay>
+                    </ConditionalRender>
                   </div>
 
                   <ConditionalRender cond={(inhability?.documentsInability?.length ?? 0) > 0}>

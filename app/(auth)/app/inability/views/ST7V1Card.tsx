@@ -20,6 +20,7 @@ import ModalBlur from "@/components/ModalBlur";
 import FormUpdateDateV1 from "@/components/inability/FormUpdateDateV1";
 import { IInability } from "@/lib/inhability/interface";
 import { formatCreatedAt } from "@/lib/helpers";
+import { useSessionSnapshot } from "@/hooks/useSessionStore";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -32,6 +33,9 @@ function ST7V1Card({
   idDoc: string;
   getData?: () => void | Promise<void>;
 }) {
+
+  const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -42,6 +46,12 @@ function ST7V1Card({
   const [showUpdateDateModal, setShowUpdateDateModal] = useState(false);
   const { modalConfirm } = useModals();
   const hasDocument = !!st2v1Doc?.urlDocument;
+
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -159,27 +169,33 @@ function ST7V1Card({
             >
               ST7 V1
             </Card.Title>
-            <DropdownButton
-              size="sm"
-              variant="secondary"
-              title={<i className="bi bi-gear-fill"></i>}
-            >
-              <Dropdown.Item onClick={() => setShowUpdateDateModal(true)}>
-                <i className="bi bi-calendar-minus me-1" />
-                Fecha de expiración
-              </Dropdown.Item>
-            </DropdownButton>
+
+            <ConditionalRender cond={!readInput}>
+              <DropdownButton
+                size="sm"
+                variant="secondary"
+                title={<i className="bi bi-gear-fill"></i>}
+              >
+                <Dropdown.Item onClick={() => setShowUpdateDateModal(true)}>
+                  <i className="bi bi-calendar-minus me-1" />
+                  Fecha de expiración
+                </Dropdown.Item>
+              </DropdownButton>
+            </ConditionalRender>
           </Card.Header>
-          <Card.Body>
-            {loading ? (
+
+          <Card.Body className="d-flex flex-column justify-content-center">
+            <ConditionalRender cond={loading}>
               <div
                 className="text-center h-100 align-content-center"
                 style={{ height: "200px" }}
               >
                 <ProgressBar variant="primary" striped now={100} animated />
               </div>
-            ) : (
-              <Card.Body>
+            </ConditionalRender>
+
+            <ConditionalRender cond={!loading}>
+              <div>
                 {/* Input file oculto */}
                 <input
                   type="file"
@@ -209,11 +225,20 @@ function ST7V1Card({
                   </div>
                 )}
 
+                <ConditionalRender cond={readInput && !hasDocument}>
+                  <div className="d-flex flex-column align-items-center text-center py-4">
+                    <i className="bi bi-file-earmark-x fs-3 text-danger" />
+                    <p className="mt-2 mb-0 text-danger fw-bold">No hay documentos cargados aún</p>
+                  </div>
+                </ConditionalRender>
+
+
                 {/* Botones condicionales */}
                 <div className="d-flex flex-column justify-content-center gap-1">
-                  {selectedFiles.length === 0 ? (
-                    <>
-                      <div className="d-flex flex-column align-items-center gap-2">
+                  <ConditionalRender cond={selectedFiles.length === 0}>
+                    <div className="d-flex flex-column align-items-center gap-2">
+
+                      <ConditionalRender cond={!readInput}>
                         <Button
                           onClick={handleButtonClick}
                           variant={hasDocument ? "primary" : "success"}
@@ -221,43 +246,51 @@ function ST7V1Card({
                         >
                           {hasDocument ? "Reemplazar" : "Cargar"}
                         </Button>
+                      </ConditionalRender>
 
-                        {hasDocument && (
-                          <Button
-                            variant="secondary"
-                            onClick={handleGetDocument}
-                            style={{ width: "80%" }}
-                          >
-                            Visualizar
-                          </Button>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="success" onClick={handleUpload}>
-                        Subir
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={handleCancel}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  )}
+                      <ConditionalRender cond={hasDocument}>
+                        <Button
+                          variant="secondary"
+                          onClick={handleGetDocument}
+                          style={{ width: "80%" }}
+                        >
+                          Visualizar
+                        </Button>
+                      </ConditionalRender>
+
+                    </div>
+                  </ConditionalRender>
+
+
+                  <ConditionalRender cond={selectedFiles.length !== 0}>
+                    <Button variant="success" onClick={handleUpload}>
+                      Subir
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={handleCancel}
+                    >
+                      Cancelar
+                    </Button>
+                  </ConditionalRender>
+
                 </div>
-              </Card.Body>
-            )}
+              </div>
+            </ConditionalRender>
+
           </Card.Body>
-          <Card.Footer>
-            <h6 className="text-center">Fecha de expiración:</h6>
-            <p className="text-center">
-              {formatCreatedAt(st2v1Doc?.expirationDateDocument) || "Sin fecha de expiración"}
-            </p>
-          </Card.Footer>
+
+          <ConditionalRender cond={st2v1Doc?.expirationDateDocument !== undefined}>
+            <Card.Footer>
+              <h6 className="text-center">Fecha de expiración:</h6>
+              <p className="text-center">
+                {formatCreatedAt(st2v1Doc?.expirationDateDocument) || "Sin fecha de expiración"}
+              </p>
+            </Card.Footer>
+          </ConditionalRender> 
         </Card>
+        
         <PDFViewerModal
           show={showPdfModal}
           onHide={() => {

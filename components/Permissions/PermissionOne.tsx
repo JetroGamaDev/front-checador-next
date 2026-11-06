@@ -61,8 +61,9 @@ export default function ShowInfoPermissionRequest({
   permission: IPermissionRequest | null;
   id: string;
 }) {
-  const router = useRouter();
   const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState("");
   const [approveModal, setApproveModal] = useState(false);
@@ -71,10 +72,17 @@ export default function ShowInfoPermissionRequest({
   const [permissionPDFModal, setPermissionPDFModal] = useState(false);
   const [showdeletePermissionModal, setShowDeletePermissionModal] = useState(false);
 
+
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
+
   const signatures = useMemo(() =>
     Array.isArray(permission?.signatures) ? permission.signatures : [],
     [permission?.signatures]
-  );  
+  );
 
   // ID del empleado con sesión activa
   const idEmployee = Number(session?.uid?.idEmployee);
@@ -183,7 +191,7 @@ export default function ShowInfoPermissionRequest({
               <Button
                 className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
                 variant="danger"
-                onClick={()=> setShowDeletePermissionModal(true)}
+                onClick={() => setShowDeletePermissionModal(true)}
                 disabled={loading}
               >
                 <i className="bi bi-trash" />
@@ -368,7 +376,7 @@ export default function ShowInfoPermissionRequest({
                       <div>
                         <h6 className="mb-1 fw-bold">Detalles del registro</h6>
                         <p className="text-muted mb-0 small">
-                          Consulta el tipo, vigencia y notas extra registradas.
+                          { readInput ? "Consulta los detalles del permiso." :"Consulta el tipo, vigencia y notas extra registradas."}
                         </p>
                       </div>
                       <span className="badge rounded-pill px3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle">
@@ -377,15 +385,18 @@ export default function ShowInfoPermissionRequest({
                     </div>
 
                     <div className="d-flex flex-column gap-4">
-                      <div className="border rounded-3 p-3">
-                        <div className="d-flex align-items-center gap-2 mb-2">
-                          <i className="bi bi-journal-text text-primary" />
-                          <span className="text-muted fw-semibold">Notas adicionales</span>
+
+                      <ConditionalRender cond={!readInput}>
+                        <div className="border rounded-3 p-3">
+                          <div className="d-flex align-items-center gap-2 mb-2">
+                            <i className="bi bi-journal-text text-primary" />
+                            <span className="text-muted fw-semibold">Notas adicionales</span>
+                          </div>
+                          <div className="text-uppercase">
+                            {permission.notes ? permission.notes : "No hay notas adicionales"}
+                          </div>
                         </div>
-                        <div className="text-uppercase">
-                          {permission.notes ? permission.notes : "No hay notas adicionales"}
-                        </div>
-                      </div>
+                      </ConditionalRender>
 
                       <Row className="g-3">
                         <Col xs={12} md={6} xl={3}>
@@ -505,8 +516,8 @@ export default function ShowInfoPermissionRequest({
             show={showdeletePermissionModal}
             onHide={() => { setShowDeletePermissionModal(false); }}
             idPermission={permission.id}
-            motive={permission.delete?.reaseonDelete?? ""}
-            status={permission.delete?.delete?? false}
+            motive={permission.delete?.reaseonDelete ?? ""}
+            status={permission.delete?.delete ?? false}
           />
         </ModalBlur>
       </ConditionalRender>

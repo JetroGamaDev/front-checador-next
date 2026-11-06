@@ -773,26 +773,29 @@ function CreateVacationComponent({
                         </Card.Body>
                       </Card>
 
-                      <Card className="border rounded-4 mb-3">
-                        <Card.Body>
-                          <div className="d-flex align-items-center gap-2 mb-4">
-                            <i className="bi bi-journal-text text-info" />
-                            <h6 className="mb-0 fw-bold">Notas</h6>
-                          </div>
+                      {/* NO VISIBLES PARA EL EMPLEADO */}
+                      <ConditionalRender cond={!readInput}>
+                        <Card className="border rounded-4 mb-3">
+                          <Card.Body>
+                            <div className="d-flex align-items-center gap-2 mb-4">
+                              <i className="bi bi-journal-text text-info" />
+                              <h6 className="mb-0 fw-bold">Notas</h6>
+                            </div>
 
-                          <Row className="g-3">
-                            <Col md={12}>
-                              <Entry
-                                label="Notas adicionales:"
-                                register={register("notes")}
-                                className="border text-uppercase"
-                                as={"textarea"}
-                                rows={3}
-                              />
-                            </Col>
-                          </Row>
-                        </Card.Body>
-                      </Card>
+                            <Row className="g-3">
+                              <Col md={12}>
+                                <Entry
+                                  label="Notas adicionales:"
+                                  register={register("notes")}
+                                  className="border text-uppercase"
+                                  as={"textarea"}
+                                  rows={3}
+                                />
+                              </Col>
+                            </Row>
+                          </Card.Body>
+                        </Card>
+                      </ConditionalRender>
 
                       {selectedPeriod && (
                         <Card className="border rounded-4 mb-3">

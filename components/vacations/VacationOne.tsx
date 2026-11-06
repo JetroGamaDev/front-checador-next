@@ -91,6 +91,7 @@ export default function ShowInfoVacation({
 }) {
   const router = useRouter();
   const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
   const [loading, setLoading] = useState(false);
   const [, setMessageLoading] = useState("");
   const [approveModal, setApproveModal] = useState(false);
@@ -103,11 +104,18 @@ export default function ShowInfoVacation({
   const showPDF = vacation?.signatures?.every((f) => f.url !== "");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
+
   const signatures = useMemo(() =>
     Array.isArray(vacation?.signatures) ? vacation?.signatures : [],
     [vacation?.signatures]
   );
-  
+
   // ID del empleado con sesión activa
   const idEmployee = Number(session?.uid?.idEmployee);
 
@@ -448,7 +456,7 @@ export default function ShowInfoVacation({
                       <div>
                         <h6 className="mb-1 fw-bold">Detalles del registro</h6>
                         <p className="text-muted mb-0 small">
-                          Consulta los días solicitados y las notas extra registras.
+                          { readInput ? "Consulta los días solicitados." : "Consulta los días solicitados y las notas extra registras."}
                         </p>
                       </div>
                       <span className="badge rounded-pill px3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle">
@@ -457,15 +465,18 @@ export default function ShowInfoVacation({
                     </div>
 
                     <div className="d-flex flex-column gap-4">
-                      <div className="border rounded-3 p-3">
-                        <div className="d-flex align-items-center gap-2 mb-2">
-                          <i className="bi bi-journal-text text-primary" />
-                          <span className="text-muted fw-semibold">Notas adicionales</span>
+
+                      <ConditionalRender cond={!readInput}>
+                        <div className="border rounded-3 p-3">
+                          <div className="d-flex align-items-center gap-2 mb-2">
+                            <i className="bi bi-journal-text text-primary" />
+                            <span className="text-muted fw-semibold">Notas adicionales</span>
+                          </div>
+                          <div className="text-uppercase">
+                            {vacation.notes ? vacation.notes : "No hay notas adicionales"}
+                          </div>
                         </div>
-                        <div className="text-uppercase">
-                          {vacation.notes ? vacation.notes : "No hay notas adicionales"}
-                        </div>
-                      </div>
+                      </ConditionalRender>
 
                       <Row className="g-3">
                         <Col xs={12} md={6} xl={4}>

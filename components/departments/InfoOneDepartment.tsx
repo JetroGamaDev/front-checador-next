@@ -188,7 +188,7 @@ export default function InfoOneDepartment({
             <OverLay string="Actualizar Departamento">
               <Button
                 className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="primary"
+                variant="info"
                 onClick={() => setShowUpdateDepartmentModal(true)}
                 disabled={loading}
               >

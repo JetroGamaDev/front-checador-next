@@ -14,6 +14,7 @@ import DeleteInhabilityModal from "./DeleteInhabilityModal";
 import moment from "moment";
 import DatePicker from "react-datepicker";
 import GenericSearchInput from "../employee/GenericSearchInput";
+import { useSessionSnapshot } from "@/hooks/useSessionStore";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -70,6 +71,8 @@ export default function TableInabilityComponent({
   const router = useRouter();
   const sp = useSearchParams();
   const searchParamsString = sp.toString();
+  const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
 
   const [showdeleteInhabilityModal, setShowDeleteInhabilityModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number | null>(null);
@@ -96,6 +99,12 @@ export default function TableInabilityComponent({
   const parsedEnd = dateEndValue ? moment(dateEndValue, "YYYY-MM-DD").toDate() : null;
 
   const MAX_VISIBLE = 5;
+
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
 
   const visiblePages = useMemo(() => {
     if (totalPages <= MAX_VISIBLE) {
@@ -354,14 +363,17 @@ export default function TableInabilityComponent({
       </ConditionalRender>
 
       <Container className="py-3" style={{ maxWidth: "1600px" }}>
-        <Button
-          variant="primary"
-          className="d-inline-flex align-items-center gap-2 fw-semibold px-3"
-          onClick={handleCreate}
-        >
-          <i className="bi bi-plus-lg" />
-          Crear incapacidad
-        </Button>
+
+        <ConditionalRender cond={!readInput}>
+          <Button
+            variant="primary"
+            className="d-inline-flex align-items-center gap-2 fw-semibold px-3"
+            onClick={handleCreate}
+          >
+            <i className="bi bi-plus-lg" />
+            Crear incapacidad
+          </Button>
+        </ConditionalRender>
 
         <div className="d-flex justify-content-between align-items-center mb-4 mt-4">
           <div>
@@ -541,12 +553,15 @@ export default function TableInabilityComponent({
                                     Ver
                                   </a>
 
-                                  <a
-                                    className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
-                                    onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
-                                  >
-                                    {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
-                                  </a>
+                                  <ConditionalRender cond={!readInput}>
+                                    <a
+                                      className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
+                                      onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
+                                    >
+                                      {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
+                                    </a>
+                                  </ConditionalRender>
+
                                 </div>
                               </td>
                             </tr>

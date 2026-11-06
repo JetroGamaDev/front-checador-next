@@ -66,6 +66,7 @@ export function OvertimeOne({
 
     // Aqui los const 
     const session = useSessionSnapshot();
+    const roles = session?.uid?.roles;
     const [loading, setLoading] = useState(false);
     const [messageLoading, setMessageLoading] = useState("");
     const router = useRouter();
@@ -78,6 +79,13 @@ export function OvertimeOne({
     const handleSignatureDoh = () => setSignatureDohModal(true);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+
+    const readInput = !roles?.isLeader
+        && !roles?.isExtra
+        && !roles?.isDoh
+        && !roles?.isApproverLeaders
+        && !roles?.isApproverDoh;
 
 
     // Configuración de overtime del sistema
@@ -399,15 +407,17 @@ export function OvertimeOne({
                                         </div>
 
                                         <div className="d-flex flex-column gap-4">
-                                            <div className="border rounded-3 p-3">
-                                                <div className="d-flex align-items-center gap-2 mb-2">
-                                                    <i className="bi bi-journal-text text-primary" />
-                                                    <span className="text-muted fw-semibold">Notas adicionales</span>
+                                            <ConditionalRender cond={!readInput}>
+                                                <div className="border rounded-3 p-3">
+                                                    <div className="d-flex align-items-center gap-2 mb-2">
+                                                        <i className="bi bi-journal-text text-primary" />
+                                                        <span className="text-muted fw-semibold">Notas adicionales</span>
+                                                    </div>
+                                                    <div className="text-uppercase">
+                                                        {overtime.notes ? overtime.notes : "No hay notas adicionales"}
+                                                    </div>
                                                 </div>
-                                                <div className="text-uppercase">
-                                                    {overtime.notes ? overtime.notes : "No hay notas adicionales"}
-                                                </div>
-                                            </div>
+                                            </ConditionalRender>
 
                                             <Row className="g-3">
                                                 <Col xs={12} md={6} xl={3}>
@@ -530,8 +540,8 @@ export function OvertimeOne({
                                     show={showDeleteModal}
                                     onHide={() => { setShowDeleteModal(false); }}
                                     idOvertime={overtime.id}
-                                    motive={overtime.delete?.reaseonDelete?? ""}
-                                    status={overtime.delete?.delete?? false}
+                                    motive={overtime.delete?.reaseonDelete ?? ""}
+                                    status={overtime.delete?.delete ?? false}
                                 />
                             </ModalBlur>
                         </ConditionalRender>

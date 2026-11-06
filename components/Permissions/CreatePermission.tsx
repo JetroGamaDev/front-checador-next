@@ -605,8 +605,11 @@ export default function CreatePermissionComponent({
                                     value: "PERMISO POR SITUACIÓN VIAL",
                                   },
                                   {
-                                    label: "POR SALUD (PROPIA O DE FAMILIAR)",
-                                    value: "PERMISO POR SALUD",
+                                    label: "POR SALUD PROPIA",
+                                    value: "PERMISO POR SALUD PROPIA",
+                                  },{
+                                    label: "POR SALUD DE FAMILIAR",
+                                    value: "PERMISO POR SALUD DE UN FAMILIAR",
                                   },
                                   {
                                     label: "ASUNTOS ESCOLARES",
@@ -809,27 +812,30 @@ export default function CreatePermissionComponent({
                         </Card.Body>
                       </Card>
 
-                      <Card className="border rounded-4">
-                        <Card.Body>
-                          <div className="d-flex align-items-center gap-2 mb-4">
-                            <i className="bi bi-journal-text text-info" />
-                            <h6 className="mb-0 fw-bold">Notas</h6>
-                          </div>
+                      {/* Fuera del EMPLEADO */}
+                      <ConditionalRender cond={!readInput}>
+                        <Card className="border rounded-4">
+                          <Card.Body>
+                            <div className="d-flex align-items-center gap-2 mb-4">
+                              <i className="bi bi-journal-text text-info" />
+                              <h6 className="mb-0 fw-bold">Notas</h6>
+                            </div>
 
-                          <Row className="g-3">
-                            <Col md={12}>
-                              <Entry
-                                label="Notas adicionales:"
-                                register={register("notes")}
-                                invalid={!!errors.notes}
-                                className="border text-uppercase"
-                                as={"textarea"}
-                                rows={3}
-                              />
-                            </Col>
-                          </Row>
-                        </Card.Body>
-                      </Card>
+                            <Row className="g-3">
+                              <Col md={12}>
+                                <Entry
+                                  label="Notas adicionales:"
+                                  register={register("notes")}
+                                  invalid={!!errors.notes}
+                                  className="border text-uppercase"
+                                  as={"textarea"}
+                                  rows={3}
+                                />
+                              </Col>
+                            </Row>
+                          </Card.Body>
+                        </Card>
+                      </ConditionalRender>
 
                       <Card className="border rounded-4 mt-3">
                         <Card.Body>

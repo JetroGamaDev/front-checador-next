@@ -134,7 +134,7 @@ export default function BrancheOne({
             <OverLay string="Actualizar Sucursal">
               <Button
                 className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="primary"
+                variant="info"
                 onClick={() => setShowUpdateBranchModal(true)}
                 disabled={loading}
               >

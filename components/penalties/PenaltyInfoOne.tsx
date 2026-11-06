@@ -30,6 +30,7 @@ export function PenaltyOne({
 
     //Const
     const session = useSessionSnapshot();
+    const roles = session?.uid?.roles;
     const [loading, setLoading] = useState(false);
     const [messageLoading, setMessageLoading] = useState("");
     const [penaltySignatureModal, setPenaltySignatureModal] = useState(false);
@@ -42,6 +43,12 @@ export function PenaltyOne({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const signatures: ISignaturesPenalties[] = useMemo(() => penalty?.signatures ?? [], [penalty?.signatures]);
+
+    const readInput = !roles?.isLeader
+        && !roles?.isExtra
+        && !roles?.isDoh
+        && !roles?.isApproverLeaders
+        && !roles?.isApproverDoh;
 
     const idEmployee = Number(session?.uid?.idEmployee);
     const penaltyEmployeeId = Number(penalty?.employee?.id);
@@ -103,7 +110,7 @@ export function PenaltyOne({
             <PenaltyOneError />
         )
     }
-    
+
 
 
     return (
@@ -276,7 +283,7 @@ export function PenaltyOne({
                                                 </h6>
 
                                                 <p className="text-muted mb-0 small">
-                                                    Consulta el motivo y las faltas causantes de la penalización.
+                                                    Consulta las faltas causantes de la penalización.
                                                 </p>
                                             </div>
 
@@ -287,15 +294,18 @@ export function PenaltyOne({
 
                                         <div className="d-flex flex-column gap-4">
                                             <div className="border rounded-3 p-3">
-                                                <div className="border rounded-3 p-3">
-                                                    <div className="d-flex align-items-center gap-2 mb-2">
-                                                        <i className="bi bi-journal-text text-primary" />
-                                                        <span className="text-muted fw-semibold">Notas adicionales</span>
+
+                                                <ConditionalRender cond={!readInput}>
+                                                    <div className="border rounded-3 p-3">
+                                                        <div className="d-flex align-items-center gap-2 mb-2">
+                                                            <i className="bi bi-journal-text text-primary" />
+                                                            <span className="text-muted fw-semibold">Notas adicionales</span>
+                                                        </div>
+                                                        <div className="text-uppercase">
+                                                            {penalty.notes ? penalty.notes : "No hay notas adicionales"}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-uppercase">
-                                                        {penalty.notes ? penalty.notes : "No hay notas adicionales"}
-                                                    </div>
-                                                </div>
+                                                </ConditionalRender>
 
 
                                                 <Row className="justify-content-between">
@@ -477,8 +487,8 @@ export function PenaltyOne({
                                     show={showDeleteModal}
                                     onHide={() => { setShowDeleteModal(false); }}
                                     idPenalty={penalty.id}
-                                    motive={penalty.delete?.reaseonDelete?? ""}
-                                    status={penalty.delete?.delete?? false}
+                                    motive={penalty.delete?.reaseonDelete ?? ""}
+                                    status={penalty.delete?.delete ?? false}
                                 />
                             </ModalBlur>
                         </ConditionalRender>

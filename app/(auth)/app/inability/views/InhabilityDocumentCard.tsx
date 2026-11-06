@@ -24,6 +24,7 @@ import ModalBlur from "@/components/ModalBlur";
 import FormUpdateDocumenstInhability from "@/components/inability/FormUpdateDocumenstInhability";
 import { IdocumentsInability } from "@/lib/inhability/interface";
 import { formatCreatedAt } from "@/lib/helpers";
+import { useSessionSnapshot } from "@/hooks/useSessionStore";
 
 
 type FeedbackState = "loading" | "success" | "error" | null;
@@ -48,8 +49,9 @@ function InhabilityDocCard({
   getData?: () => void | Promise<void>;
 }) {
 
+  const session = useSessionSnapshot();
+  const roles = session?.uid?.roles;
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
@@ -59,6 +61,13 @@ function InhabilityDocCard({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const hasDocument = !!urlDocument;
+
+
+  const readInput = !roles?.isLeader
+    && !roles?.isExtra
+    && !roles?.isDoh
+    && !roles?.isApproverLeaders
+    && !roles?.isApproverDoh;
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,20 +128,20 @@ function InhabilityDocCard({
   const handleGetDocument = async () => {
     setFeedback("loading");
     setFeedbackMsg("Cargando...");
-  
+
     const res = await getInhabilityDocument({ idDoc, selfId });
-  
+
     if (!res.success || !res.data) {
       setFeedbackMsg("No se pudo cargar el documento");
       setFeedback("error");
       return;
     }
-  
+
     // data:application/pdf;base64,XXXX → Blob → blob:...
     const base64 = res.data.split(",")[1];
     const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
     const blob = new Blob([bytes], { type: "application/pdf" });
-  
+
     if (pdfUrl.startsWith("blob:")) URL.revokeObjectURL(pdfUrl);
     setPdfUrl(URL.createObjectURL(blob));
     setShowPdfModal(true);
@@ -145,7 +154,6 @@ function InhabilityDocCard({
       fileInputRef.current.value = "";
     }
   };
-
 
 
   return (
@@ -173,30 +181,37 @@ function InhabilityDocCard({
       <Col xs={12} sm={6} md={4} xl={3}>
         <Card className="rounded shadow-sm bg-body-tertiary h-100">
           <Card.Header className="d-flex justify-content-end align-items-end">
-            <DropdownButton
-              size="sm"
-              variant="secondary"
-              title={<i className="bi bi-gear-fill"></i>}
-            >
-              <Dropdown.Item>
-                <Button
-                  type="button"
-                  onClick={() => setShowUpdateModal(true)}>
-                  <i className="bi bi-pencil me-1" />
-                  Actualizar
-                </Button>
-              </Dropdown.Item>
-            </DropdownButton>
+
+            <ConditionalRender cond={!readInput}>
+              <DropdownButton
+                size="sm"
+                variant="secondary"
+                title={<i className="bi bi-gear-fill"></i>}
+              >
+                <Dropdown.Item>
+                  <Button
+                    type="button"
+                    onClick={() => setShowUpdateModal(true)}>
+                    <i className="bi bi-pencil me-1" />
+                    Actualizar
+                  </Button>
+                </Dropdown.Item>
+              </DropdownButton>
+            </ConditionalRender>
           </Card.Header>
+
+
           <Card.Body>
-            {loading ? (
+            <ConditionalRender cond={loading}>
               <div
                 className="text-center h-100 align-content-center"
                 style={{ height: "200px" }}
               >
                 <ProgressBar variant="primary" striped now={100} animated />
               </div>
-            ) : (
+            </ConditionalRender>
+
+            <ConditionalRender cond={!loading}>
               <Card.Body>
                 {/* Input file oculto */}
                 <input
@@ -229,20 +244,20 @@ function InhabilityDocCard({
 
                 {/* Botones condicionales */}
                 <div className="d-flex flex-column justify-content-center gap-1">
-                  {selectedFiles.length === 0 ? (
-                    <>
-                      <div className="mb-3 text-center">
-                        <p className="mb-1">
-                          <span className="fw-semibold">Folio: </span>
-                          {folio || "Sin folio"}
-                        </p>
-                        <p className="mb-0">
-                          <span className="fw-semibold">Expira: </span>
-                          {doc.expirationDateDocument ? formatCreatedAt(doc.expirationDateDocument) : "Sin fecha"}
-                        </p>
-                      </div>
+                  <ConditionalRender cond={selectedFiles.length === 0}>
+                    <div className="mb-3 text-center">
+                      <p className="mb-1">
+                        <span className="fw-semibold">Folio: </span>
+                        {folio || "Sin folio"}
+                      </p>
+                      <p className="mb-0">
+                        <span className="fw-semibold">Expira: </span>
+                        {doc.expirationDateDocument ? formatCreatedAt(doc.expirationDateDocument) : "Sin fecha"}
+                      </p>
+                    </div>
 
-                      <div className="d-flex flex-column align-items-center gap-2">
+                    <div className="d-flex flex-column align-items-center gap-2">
+                      <ConditionalRender cond={!readInput}>
                         <Button
                           onClick={handleButtonClick}
                           variant={hasDocument ? "primary" : "success"}
@@ -250,44 +265,44 @@ function InhabilityDocCard({
                         >
                           {hasDocument ? "Reemplazar" : "Cargar"}
                         </Button>
+                      </ConditionalRender>
 
-                        {hasDocument && (
-                          <Button
-                            variant="secondary"
-                            onClick={handleGetDocument}
-                            style={{ width: "80%" }}
-                          >
-                            Visualizar
-                          </Button>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="success" onClick={handleUpload}>
-                        Subir
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={() => handleCancel()}
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  )}
+                      <ConditionalRender cond={hasDocument}>
+                        <Button
+                          variant="secondary"
+                          onClick={handleGetDocument}
+                          style={{ width: "80%" }}
+                        >
+                          Visualizar
+                        </Button>
+                      </ConditionalRender>
+                    </div>
+                  </ConditionalRender>
+
+                  <ConditionalRender cond={selectedFiles.length !== 0}>
+                    <Button variant="success" onClick={handleUpload}>
+                      Subir
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => handleCancel()}
+                    >
+                      Cancelar
+                    </Button>
+                  </ConditionalRender>
                 </div>
               </Card.Body>
-            )}
+            </ConditionalRender>
           </Card.Body>
 
-          <Card.Footer>
-            <div className="d-flex justify-content-center gap-2">
-              <p>{formatDate(dateInit, "yyyy/MM/dd")}</p>
-              <span> - </span>
-              <p>{formatDate(dateEnd, "yyyy/MM/dd")}</p>
-            </div>
-          </Card.Footer>
+            <Card.Footer>
+              <div className="d-flex justify-content-center gap-2">
+                <p>{formatDate(dateInit, "dd/MM/yyyy")}</p>
+                <span> - </span>
+                <p>{formatDate(dateEnd, "dd/MM/yyyy")}</p>
+              </div>
+            </Card.Footer>
 
         </Card>
         <PDFViewerModal
