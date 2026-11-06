@@ -4,6 +4,7 @@ import { ActionResponse, IDeleteIncidenece } from "@/lib/definitions";
 import { IPenalty, IPenaltyAxios, IPenaltyForOffeses } from "@/lib/penalties/interface";
 import { storeAction } from "./storeActions";
 import { auth } from "@/lib/auth";
+import { fetchPagedWithoutCancelled, isOnlyEmployee } from "@/lib/employeeVisibility";
 import axios from "axios";
 import { FetchUsersArgs } from "@/lib/constancy/interface";
 import { storeToken } from "@/lib/useToken";
@@ -86,48 +87,56 @@ export async function fetchPenaltiesQueries(args: FetchUsersArgs & {
     pages: number;
 }> {
     try {
-        const { apiToken, API_URL } = await storeAction();
+        const { apiToken, API_URL, session } = await storeAction();
 
         const pageNum = Math.max(Number(args.page ?? 1) || 1, 1);
         const limitNum = Math.min(Math.max(Number(args.limit ?? 20) || 20, 1), 100);
 
-        const params = new URLSearchParams();
-        params.set("page", String(pageNum));
-        params.set("limit", String(limitNum));
+        const requestPage = async (page: number, limit: number): Promise<{ data: IPenaltyForOffeses[]; total: number }> => {
+            const params = new URLSearchParams();
+            params.set("page", String(page));
+            params.set("limit", String(limit));
 
-        if (args.search?.trim()) {
-            params.set("search", args.search.trim());
-        } 
-        if (args.dateInit?.trim()) {
-            params.set("dateInit", args.dateInit.trim());
-        } 
-        if (args.dateEnd?.trim()) {
-            params.set("dateEnd", args.dateEnd.trim());
-        }
+            if (args.search?.trim()) {
+                params.set("search", args.search.trim());
+            }
+            if (args.dateInit?.trim()) {
+                params.set("dateInit", args.dateInit.trim());
+            }
+            if (args.dateEnd?.trim()) {
+                params.set("dateEnd", args.dateEnd.trim());
+            }
 
-        const response = await axios
-            .get(`${API_URL}/penaltyForOffeses?${params.toString()}`, {
-                headers: {
-                    Authorization: `Bearer ${apiToken}`,
-                },
-            })
-            .then((res) => {
-                return res.data;
-            })
-            .catch((err) => {
-                console.log(err);
-                throw new Error(
-                    err.response.data.message
-                        ? err.response.data.message
-                        : "Error en la respuesta"
-                );
-            });
+            const response = await axios
+                .get(`${API_URL}/penaltyForOffeses?${params.toString()}`, {
+                    headers: {
+                        Authorization: `Bearer ${apiToken}`,
+                    },
+                })
+                .then((res) => {
+                    return res.data;
+                })
+                .catch((err) => {
+                    console.log(err);
+                    throw new Error(
+                        err.response.data.message
+                            ? err.response.data.message
+                            : "Error en la respuesta"
+                    );
+                });
 
-        const total = Number(response.total ?? 0);
+            return { data: response.data?.data ?? [], total: Number(response.total ?? 0) };
+        };
+
+        // El usuario que solo es empleado no ve los registros cancelados (ni cuentan en el total)
+        const { data, total } = isOnlyEmployee(session)
+            ? await fetchPagedWithoutCancelled(requestPage, pageNum, limitNum)
+            : await requestPage(pageNum, limitNum);
+
         const pages = Math.max(Math.ceil(total / limitNum), 1);
 
         return {
-            data: response.data?.data ?? [],
+            data,
             total,
             page: pageNum,
             limit: limitNum,

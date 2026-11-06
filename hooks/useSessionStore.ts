@@ -2,14 +2,9 @@
 import { useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Session } from "next-auth";
+import { isEmployeeSession } from "@/lib/employeeVisibility";
 
-// Sesión de empleado (número de empleado + NIP/contraseña). Las sesiones iniciadas antes de guardar
-// sessionType no lo traen: un empleado nunca tiene correo, un usuario del sistema siempre
-export function isEmployeeSession(user?: Session["user"]) {
-  if (!user) return false;
-  if (user.sessionType) return user.sessionType === "employee";
-  return !user.email && user.role !== "CHECADOR";
-}
+export { isEmployeeSession };
 
 export function useSessionSnapshot() {
   const { data: session } = useSession();

@@ -6,6 +6,7 @@ import { storeAction } from "./storeActions";
 import { storeToken } from "@/lib/useToken";
 import { revalidatePath } from "next/cache";
 import { base64ToBlob } from "@/lib/helpers";
+import { fetchPagedWithoutCancelled, isOnlyEmployee } from "@/lib/employeeVisibility";
 import { IUpdateVacation, PeriodVacation, Vacations } from "@/lib/vactions/interface";
 
 // export async function fetchVacations(): Promise<Vacations[]> {
@@ -86,45 +87,53 @@ export async function fetchVacations(args: FetchVacationsArgs = {}): Promise<{
     const pageNum = Math.max(Number(args.page ?? 1) || 1, 1);
     const limitNum = Math.min(Math.max(Number(args.limit ?? 20) || 20, 1), 100);
 
-    const params = new URLSearchParams();
-    params.set("page", String(pageNum));
-    params.set("limit", String(limitNum));
+    const requestPage = async (page: number, limit: number): Promise<{ data: Vacations[]; total: number }> => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
 
-    // ✅ filtros opcionales (si quisieras usarlos manualmente)
-    if (args.status) params.set("status", args.status);
-    if (args.leader) params.set("leader", String(args.leader));
-    if (args.personDoh) params.set("personDoh", String(args.personDoh));
-    if (args.employee) params.set("employee", String(args.employee));
-    if (args.search) params.set("search", String(args.search));
-    if (args.dateInit) params.set("dateInit", String(args.dateInit));
-    if (args.dateEnd) params.set("dateEnd", String(args.dateEnd));
+      // ✅ filtros opcionales (si quisieras usarlos manualmente)
+      if (args.status) params.set("status", args.status);
+      if (args.leader) params.set("leader", String(args.leader));
+      if (args.personDoh) params.set("personDoh", String(args.personDoh));
+      if (args.employee) params.set("employee", String(args.employee));
+      if (args.search) params.set("search", String(args.search));
+      if (args.dateInit) params.set("dateInit", String(args.dateInit));
+      if (args.dateEnd) params.set("dateEnd", String(args.dateEnd));
 
 
-    if (session?.role === "EMPLOYEE" && session.isDoh === false) {
-      params.set("employee", String(session.idEmployee));
-      params.delete("leader");
-      params.delete("personDoh");
-    }
+      if (session?.role === "EMPLOYEE" && session.isDoh === false) {
+        params.set("employee", String(session.idEmployee));
+        params.delete("leader");
+        params.delete("personDoh");
+      }
 
-    if (session?.role !== "EMPLOYEE" && session?.isDoh === false) {
-      params.set("leader", String(session.idEmployee));
-      params.delete("employee");
-      params.delete("personDoh");
-    }
+      if (session?.role !== "EMPLOYEE" && session?.isDoh === false) {
+        params.set("leader", String(session.idEmployee));
+        params.delete("employee");
+        params.delete("personDoh");
+      }
 
-    const url = `${apiUrl}/vacations/listAll?${params.toString()}`;
+      const url = `${apiUrl}/vacations/listAll?${params.toString()}`;
 
-    const response = await axios
-      .get(url, {
-        headers: { Authorization: `Bearer ${apiToken}` },
-      })
-      .then((res) => res.data);
+      const response = await axios
+        .get(url, {
+          headers: { Authorization: `Bearer ${apiToken}` },
+        })
+        .then((res) => res.data);
 
-    const total = Number(response.total ?? 0);
+      return { data: response.data ?? [], total: Number(response.total ?? 0) };
+    };
+
+    // El usuario que solo es empleado no ve los registros cancelados (ni cuentan en el total)
+    const { data, total } = isOnlyEmployee(session)
+      ? await fetchPagedWithoutCancelled(requestPage, pageNum, limitNum)
+      : await requestPage(pageNum, limitNum);
+
     const pages = Math.max(Math.ceil(total / limitNum), 1);
 
     return {
-      data: response.data ?? [],
+      data,
       total,
       page: pageNum,
       limit: limitNum,
