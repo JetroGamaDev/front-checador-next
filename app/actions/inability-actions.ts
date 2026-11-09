@@ -244,52 +244,6 @@ export async function uploadFirstInhabilityDocument({
   }
 }
 
-export async function updateInability(
-  id: number,
-  data: InabilityPayload & { firstDoc: FileList | null }
-): Promise<ActionResponse<null>> {
-  try {
-    const { apiToken, API_URL } = await storeAction();
-
-    const document = new FormData();
-
-    if (data.firstDoc) {
-      document.append("document", data.firstDoc?.[0]);
-      document.append("folio", data.folio);
-    }
-
-    await axios
-      .put(`${API_URL}/inability/documentsInability/${id}/1`, document, {
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      .then(async (res) => {
-        return res.data;
-      })
-      .catch((err) => {
-        console.log(err.response);
-        throw new Error(
-          err.response.data.message
-            ? err.response.data.message
-            : "Error al descargar el PDF"
-        );
-      });
-
-    revalidatePath("/app/inability");
-
-    return { success: true, message: "Incapacidad actualizada" };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    console.log(error);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-}
-
 export async function createNewDocument({
   idDoc,
   dateInit,
@@ -352,11 +306,13 @@ export async function createNewDocument({
   }
 }
 
+// PUT /inability/documentsInability/:id/:idDocument
+// Sube (o reemplaza) el PDF de un documento de la incapacidad y puede recibir el folio.
 export async function updateInabilityModal({
   idDoc,
   selfId,
   formData,
-  folio
+  folio,
 }: {
   idDoc: string;
   folio: string;
@@ -366,42 +322,35 @@ export async function updateInabilityModal({
   try {
     const { apiToken, API_URL } = await storeAction();
 
-    const image = formData.get("files") as File;
+    const image = formData.get("files") as File | null;
 
-    // Subir imagen al backend
+    if (!image) throw new Error("No se envió ningún archivo");
+
     const data = new FormData();
     data.append("document", image);
     data.append("folio", folio);
 
-    await axios
-      .put(`${API_URL}/inability/documentsInability/${idDoc}/${selfId}`, data, {
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "multipart/form-data",
-        },
-      })
-      .then(async (res) => {
-        return res.data;
-      })
-      .catch((err) => {
-        console.log(err.response);
-        throw new Error(
-          err.response.data.message
-            ? err.response.data.message
-            : "Error al descargar el PDF"
-        );
-      });
+    await axios.put(`${API_URL}/inability/documentsInability/${idDoc}/${selfId}`, data, {
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        "Content-Type": "multipart/form-data",
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 120_000,
+    });
 
     revalidatePath("/app/inability");
 
     return { success: true, message: "Incapacidad actualizada" };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log(error);
-    return {
-      success: false,
-      message: error.message,
-    };
+
+    const message = axios.isAxiosError(error)
+      ? error.response?.data?.message ?? error.message
+      : (error as Error).message;
+
+    return { success: false, message };
   }
 }
 

@@ -110,7 +110,7 @@ export default function FormUpdateDateV2({
             </ConditionalRender>
 
             <Form onSubmit={handleSubmit(onSubmit)}>
-                <div className="p-2">
+                <div className="p-2 mt-4">
 
                     {/* Header */}
                     <div className="d-flex align-items-center justify-content-between mb-4">
@@ -143,7 +143,7 @@ export default function FormUpdateDateV2({
                                                 if (date) setDateError(false);
                                             }}
                                             dateFormat="dd/MM/yyyy"
-                                            placeholderText="dd/mm/aaaa"
+                                            placeholderText="DD/MM/AAAA"
                                             popperContainer={({ children }) => children}
                                             withPortal
                                             locale="es"

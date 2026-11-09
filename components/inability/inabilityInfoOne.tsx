@@ -12,7 +12,6 @@ import ModalBlur from "@/components/ModalBlur";
 import ConditionalRender from "@/components/ConditionalRender";
 import Loading from "@/components/LoadingSpinner";
 import { useRouter } from "next/navigation";
-import FormUpdateInability from "./inabilityFormUpdate";
 import { getOneInability } from "@/app/actions/inability-actions";
 import OverLay from "../templates/OverLay";
 import InabilityOneError from "./inabilityMessageError";
@@ -91,9 +90,9 @@ export default function InfoOneInability({
   const session = useSessionSnapshot();
   const roles = session?.uid?.roles;
   const [modalUploadDoc, setModalUploadDoc] = useState(false);
-  const [showUpdateInabilityModal, setShowUpdateInabilityModal] = useState(false);
+  // const [showUpdateInabilityModal, setShowUpdateInabilityModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [, setMessageLoading] = useState("");
+  const [messageLoading, setMessageLoading] = useState("");
   const [feedbackMsg] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
   const router = useRouter();
@@ -136,6 +135,10 @@ export default function InfoOneInability({
 
   return (
     <>
+      <ConditionalRender cond={loading}>
+        <Loading message={messageLoading} />
+      </ConditionalRender>
+
       <ConditionalRender cond={feedback === "loading"}>
         <Loading message={feedbackMsg || "Actualizando..."} />
       </ConditionalRender>
@@ -178,8 +181,8 @@ export default function InfoOneInability({
                 </Button>
               </OverLay>
 
-
-              <ConditionalRender cond={id !== "null"}>
+              {/* TODO: Este endpoint no tiene ninguna finalidad para actualizar incaapacidades */}
+              {/* <ConditionalRender cond={id !== "null"}>
                 <OverLay string="Actualizar incapacidad">
                   <Button
                     className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
@@ -193,7 +196,7 @@ export default function InfoOneInability({
                     </span>
                   </Button>
                 </OverLay>
-              </ConditionalRender>
+              </ConditionalRender> */}
 
               <OverLay string="Eliminar registro">
                 <Button
@@ -474,7 +477,7 @@ export default function InfoOneInability({
         </Card>
       </Container>
 
-      <ConditionalRender cond={showUpdateInabilityModal}>
+      {/* <ConditionalRender cond={showUpdateInabilityModal}>
         <ModalBlur onClose={() => setShowUpdateInabilityModal(false)}>
           <FormUpdateInability
             show={showUpdateInabilityModal}
@@ -482,9 +485,10 @@ export default function InfoOneInability({
             id={Number(inhability.id)}
             inhability={inhability}
             employees={employees}
+            getData={refreshData}
           />
         </ModalBlur>
-      </ConditionalRender>
+      </ConditionalRender> */}
 
       <ConditionalRender cond={modalUploadDoc}>
         <ModalBlur onClose={() => setModalUploadDoc(false)}>

@@ -92,6 +92,7 @@ export type InabilityPayload = {
   dateInit: string; // yyyy-MM-dd
   dateEnd: string; // yyyy-MM-dd
   notes: string | null;
+  expirationDate?: string;
 };
 
 export interface IdocumentsInability {
