@@ -536,7 +536,8 @@ export default function CardsFiles({
                     <Carousel.Item key={i}>
                         <div
                             className="d-grid gap-3 px-1 mb-5"
-                            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}
+                            // Cada tarjeta mide 1/{chunkSize} del ancho aunque la página tenga menos (en pantallas chicas bajan a mínimo 200px)
+                            style={{ gridTemplateColumns: `repeat(auto-fill, minmax(max(200px, calc((100% - ${chunkSize - 1}rem) / ${chunkSize})), 1fr))` }}
                         >
                             {group.map((item) => (
                                 <StatCard
