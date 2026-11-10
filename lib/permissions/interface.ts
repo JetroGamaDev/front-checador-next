@@ -27,6 +27,8 @@ export interface IPermissionRequest {
   status: PermissionRequestStatus;
   dateApprove?: string;
   dateApproveDoh?: string;
+  // Con goce de sueldo: lo define DOH al aprobar (null en pendientes, rechazados o permisos anteriores)
+  withPay?: boolean | null;
 
   delete?: {
     delete: boolean;

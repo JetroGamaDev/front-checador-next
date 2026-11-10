@@ -321,19 +321,26 @@ export async function approvedPermissionDoh({
     id: string | null;
     signature: string;
     status: string;
+    withPay?: boolean | null;
   };
 }): Promise<ActionResponse<boolean>> {
   try {
     if (!data.id) throw new Error("ID NOT DEFINED");
+
+    // Al aprobar, withPay es obligatorio y debe ser boolean real; al rechazar no se manda
+    const approving = data.status === "APPROVED";
+    if (approving && typeof data.withPay !== "boolean") {
+      throw new Error("Indica si el permiso es con goce de sueldo");
+    }
 
     const { apiToken, apiUrl } = await storeToken();
 
     await axios
       .put(
         `${apiUrl}/permissionRequest/approveDoh/${data.id}`,
-        {
-          status: data.status,
-        },
+        approving
+          ? { status: data.status, withPay: data.withPay === true }
+          : { status: data.status },
         {
           headers: {
             Authorization: `Bearer ${apiToken}`,

@@ -18,6 +18,8 @@ type FeedbackState = "loading" | "success" | "error" | null;
 type TInputs = {
   signature: string;
   status: string;
+  // "yes" | "no"; empieza sin seleccionar para que DOH tenga que elegir
+  withPay: "" | "yes" | "no";
 };
 
 function SignatureDohModal({
@@ -30,8 +32,14 @@ function SignatureDohModal({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { isSubmitting, errors },
-  } = useForm<TInputs>();
+  } = useForm<TInputs>({ defaultValues: { withPay: "" } });
+
+  const status = watch("status");
+  const withPay = watch("withPay");
+  // Al aprobar, no se puede enviar hasta elegir Sí o No
+  const missingWithPay = status === "APPROVED" && withPay !== "yes" && withPay !== "no";
 
   const { modalConfirm } = useModals();
   const router = useRouter();
@@ -41,7 +49,7 @@ function SignatureDohModal({
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   const handleOnExited = () => {
-    reset({ signature: "" });
+    reset({ signature: "", status: "", withPay: "" });
   };
 
   const onSubmit: SubmitHandler<TInputs> = async (data) => {
@@ -52,7 +60,12 @@ function SignatureDohModal({
         setFeedbackMsg("Enviando firma...");
 
         const res = await approvedPermissionDoh({
-          data: { id, signature: data.signature, status: data.status },
+          data: {
+            id,
+            signature: data.signature,
+            status: data.status,
+            withPay: data.status === "APPROVED" ? data.withPay === "yes" : null,
+          },
         });
 
         if (!res.success) {
@@ -124,6 +137,34 @@ function SignatureDohModal({
               id="APPROVED"
               isInvalid={!!errors.status}
             />
+
+            <ConditionalRender cond={status === "APPROVED"}>
+              <Form.Group className="my-3">
+                <Form.Label className="fw-semibold mb-1">
+                  ¿Con goce de sueldo? <span className="text-danger">*</span>
+                </Form.Label>
+                <div className="d-flex gap-4">
+                  <Form.Check
+                    {...register("withPay", {
+                      validate: (v) => status !== "APPROVED" || v === "yes" || v === "no",
+                    })}
+                    value="yes"
+                    type="radio"
+                    label="Sí"
+                    id="doh-with-pay-yes"
+                    isInvalid={!!errors.withPay}
+                  />
+                  <Form.Check
+                    {...register("withPay")}
+                    value="no"
+                    type="radio"
+                    label="No"
+                    id="doh-with-pay-no"
+                    isInvalid={!!errors.withPay}
+                  />
+                </div>
+              </Form.Group>
+            </ConditionalRender>
             <SignatureInput
               control={control}
               name="signature"
@@ -137,7 +178,7 @@ function SignatureDohModal({
             <Button
               type="submit"
               className="bg-success border-success"
-              disabled={isSubmitting}
+              disabled={isSubmitting || missingWithPay}
             >
               Enviar
             </Button>

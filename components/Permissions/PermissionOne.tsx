@@ -19,6 +19,7 @@ import { formatCreatedAt, formatCreatedAtOnlyHours, formatDateMx } from "@/lib/h
 import { IPermissionRequest } from "@/lib/permissions/interface";
 import ModalBlur from "../ModalBlur";
 import DeletePermissionModal from "./DeleteModal";
+import WithPayBadge from "./WithPayBadge";
 
 
 function fullName(p?: { name?: string; lastName?: string } | null) {
@@ -288,7 +289,10 @@ export default function ShowInfoPermissionRequest({
                 </p>
               </div>
 
-              {statusVariant(overallStatus)}
+              <div className="d-flex flex-wrap align-items-center justify-content-end gap-2">
+                <WithPayBadge withPay={permission.withPay} showUndefined />
+                {statusVariant(overallStatus)}
+              </div>
 
             </div>
 

@@ -18,6 +18,7 @@ import DeletePermissionModal from "./DeleteModal";
 import DatePicker from "react-datepicker";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import moment from "moment";
+import WithPayBadge from "./WithPayBadge";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -365,6 +366,17 @@ export default function PermissionsTableClient({
           }
         }
       },
+    },
+    {
+      key: "withPay",
+      label: "Goce de sueldo",
+      align: "center",
+      accessor: (row) => (row.withPay === true ? "Con goce" : row.withPay === false ? "Sin goce" : ""),
+      render: (row) => (
+        <div className="text-center">
+          {row.delete?.delete === true ? null : <WithPayBadge withPay={row.withPay} />}
+        </div>
+      ),
     },
   ];
 
