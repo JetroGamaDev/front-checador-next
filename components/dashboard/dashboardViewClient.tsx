@@ -31,6 +31,7 @@ export default function DashboardViewClient({
         { idCard: 2, value: "Prima anual", icon: "award", accent: "pink" },
         { idCard: 3, value: "Ingresos y salidas", icon: "arrow-left-right", accent: "orange" },
         { idCard: 4, value: "Vales", icon: "ticket-perforated", accent: "purple" },
+        { idCard: 5, value: "Excedentes de comida", icon: "fork-knife", accent: "success", label: "Empleados que se pasaron de su tiempo de comida: resumen por empleado y detalle por día." },
     ];
 
     return (

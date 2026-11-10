@@ -11,7 +11,7 @@ import moment from "moment";
 import SuccessOverlay from "../SuccessOverlay";
 import ErrorOverlay from "../ErrorOverlay";
 import Loading from "../LoadingSpinner";
-import { getPerfectAttendanceBonus, getPrimaAnual, getReportInflowsAndOutflows, getReportVales } from "@/app/actions/reports-actions";
+import { getLunchExcessReport, getPerfectAttendanceBonus, getPrimaAnual, getReportInflowsAndOutflows, getReportVales } from "@/app/actions/reports-actions";
 import { ICurrentPeriod } from "@/lib/definitions";
 import { createPortal } from "react-dom";
 import { formatCreatedAt } from "@/lib/helpers";
@@ -191,6 +191,37 @@ function StatCard({ idCard, label, icon, value, accent = "primary", isPending, p
                         link.click();
                         link.remove();
                         handleClearDates();
+                        setFeedbackMsg("Reporte generado correctamente");
+                        setFeedback("success");
+                    } catch (err) {
+                        console.log(err);
+                        setFeedbackMsg("Error inesperado al generar el reporte");
+                        setFeedback("error");
+                    }
+                })
+                break;
+
+            case 5: // Excedentes de comida
+                modalConfirm("¿Seguro que quieres descargar este reporte?", async () => {
+                    try {
+                        setFeedback("loading");
+                        setFeedbackMsg("Generando reporte...")
+                        const res = await getLunchExcessReport(String(selectedPeriodId), selectedPeriod?.numberPeriod);
+
+                        if (!res.success || !res.data) {
+                            setFeedbackMsg(res.message || "No se pudo generar el reporte");
+                            setFeedback("error");
+                            return;
+                        }
+
+                        const { base64Url, fileName } = res.data;
+
+                        const link = document.createElement("a");
+                        link.href = base64Url;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
                         setFeedbackMsg("Reporte generado correctamente");
                         setFeedback("success");
                     } catch (err) {
