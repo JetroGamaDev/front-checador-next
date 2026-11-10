@@ -4,8 +4,8 @@ import { IBonusKeys, IUpdateBonusKeys } from "@/lib/Bonus/interface";
 import { TableTemplateColumn } from "../templates/TableTemplate";
 import ConditionalRender from "../ConditionalRender";
 import Loading from "../LoadingSpinner";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card, Col, Container, InputGroup, Row } from "react-bootstrap";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Card, Col, Container, Form, InputGroup, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import ListView from "../templates/ListView";
 import ModalBlur from "../ModalBlur";
 import CreateBonuskeysModal from "./CreateBonuskeysModal";
@@ -17,7 +17,6 @@ import SuccessOverlay from "../SuccessOverlay";
 import ErrorOverlay from "../ErrorOverlay";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import { useRouter, useSearchParams } from "next/navigation";
-import moment from "moment-timezone";
 import { es } from "date-fns/locale";
 import { registerLocale } from "react-datepicker";
 
@@ -46,10 +45,8 @@ export default function TableBonusKeys({
     const sp = useSearchParams();
     const searchParamsString = sp.toString();
     const currentSearch = sp.get("search") ?? "";
-    const isClearingSelectionRef = useRef(false);
-    const [, setSelectedIds] = useState<Array<string | number>>([]);
-    const tableRef = useRef<{ clearSelection: () => void } | null>(null);
-    const [, setTableResetKey] = useState(0);
+    // Bonos marcados para el Excel, por id. Se conservan al filtrar (la búsqueda solo cambia los renglones visibles)
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const router = useRouter();
 
 
@@ -59,7 +56,6 @@ export default function TableBonusKeys({
     const [employeeName, setEmployeeName] = useState<string | null>(null);
     const [employeeLastName, setEmployeeLastName] = useState<string | null>(null);
     const [selectedBonus, setSelectedBonus] = useState<IUpdateBonusKeys | null>(null);
-    const [docBase64Url, setDocBase64Url] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -91,6 +87,7 @@ export default function TableBonusKeys({
                     return;
                 }
 
+                setSelectedIds((prev) => prev.filter((id) => id !== idRegister));
                 setFeedbackMsg(res.message || "Eliminado correctamente");
                 setFeedback("success");
 
@@ -103,17 +100,29 @@ export default function TableBonusKeys({
         });
     }
 
-    const clearSelectedIds = useCallback(() => {
-        isClearingSelectionRef.current = true;
+    // ---------- Selección ----------
+    const visibleIds = useMemo(
+        () => (bonuskeys ?? []).map((b) => Number(b.id)).filter((id) => Number.isInteger(id) && id > 0),
+        [bonuskeys]
+    );
+    const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+    const visibleSelected = visibleIds.filter((id) => selectedSet.has(id)).length;
+    const allVisibleSelected = visibleIds.length > 0 && visibleSelected === visibleIds.length;
+    const someVisibleSelected = visibleSelected > 0 && !allVisibleSelected;
 
-        tableRef.current?.clearSelection();
-        setSelectedIds([]);
-        setTableResetKey((k) => k + 1);
+    const toggleOne = (id: number) => {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    };
 
-        setTimeout(() => {
-            isClearingSelectionRef.current = false;
-        }, 0);
-    }, []);
+    // "Seleccionar todos" solo afecta a los renglones visibles; lo marcado en otras búsquedas se respeta
+    const toggleAllVisible = () => {
+        setSelectedIds((prev) => {
+            if (allVisibleSelected) return prev.filter((id) => !visibleIds.includes(id));
+            const next = new Set(prev);
+            visibleIds.forEach((id) => next.add(id));
+            return Array.from(next);
+        });
+    };
 
     const handleSearch = useCallback(
         (value: string) => {
@@ -131,10 +140,9 @@ export default function TableBonusKeys({
             } else {
                 params.delete("search");
             }
-            clearSelectedIds();
             router.push(`/app/bonuskeys?${params.toString()}`);
         },
-        [currentSearch, searchParamsString, router, clearSelectedIds]
+        [currentSearch, searchParamsString, router]
     );
 
     const columns: TableTemplateColumn<IBonusKeys>[] = [
@@ -201,30 +209,36 @@ export default function TableBonusKeys({
 
     ];
 
-    //Descargar DOCUMENTO
+    //Descargar DOCUMENTO (solo los bonos seleccionados)
     const handleDownloadDocument = () => {
-        modalConfirm("¿Seguro que quieres descargar el documento?", async () => {
-            if (docBase64Url) {
-                triggerDownload(docBase64Url);
-                return;
-            }
+        if (selectedIds.length === 0) return;
+        const ids = [...selectedIds];
+        const question = ids.length === 1
+            ? "¿Seguro que quieres descargar el bono seleccionado?"
+            : `¿Seguro que quieres descargar los ${ids.length} bonos seleccionados?`;
 
+        modalConfirm(question, async () => {
             try {
                 setFeedback("loading");
                 setFeedbackMsg("Generando documento...");
 
-                const res = await downloadDocBonusKeys();
+                const res = await downloadDocBonusKeys(ids);
 
                 if (!res.success || !res.data) {
                     setFeedbackMsg(res.message || "Error al obtener el documento");
                     setFeedback("error");
+                    // Pudieron eliminarse bonos desde otra sesión (404): se refresca la tabla
+                    router.refresh();
                     return;
                 }
 
-                setDocBase64Url(res.data.base64Url);
+                const link = document.createElement("a");
+                link.href = res.data.base64Url;
+                link.download = "bono-llaves.xlsx";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
                 setFeedback(null);
-                triggerDownload(res.data.base64Url);
-
             } catch (error) {
                 console.log(error);
 
@@ -233,15 +247,6 @@ export default function TableBonusKeys({
             }
         });
     };
-    
-    const triggerDownload = useCallback((base64Url: string) => {
-        const link = document.createElement("a");
-        link.href = base64Url;
-        link.download = `Bono-de-llaves-${moment.tz("America/Mexico_City").format("YYYY-MM-DD")}.xlsx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }, []);
 
     return (
         <>
@@ -277,14 +282,36 @@ export default function TableBonusKeys({
                     Crear bono
                 </Button>
 
-                <Button
-                    variant="dark"
-                    className="d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3"
-                    onClick={handleDownloadDocument}
+                {/* Un botón deshabilitado no recibe el mouse: el tooltip va en el contenedor */}
+                <OverlayTrigger
+                    placement="bottom"
+                    show={selectedIds.length === 0 ? undefined : false}
+                    overlay={<Tooltip id="bonus-download-tooltip">Selecciona al menos un bono</Tooltip>}
                 >
-                    <i className="bi bi-file-earmark-excel" />
-                    Descargar documento
-                </Button>
+                    <span className="d-inline-flex">
+                        <Button
+                            variant="dark"
+                            className="d-inline-flex align-items-center justify-content-center gap-2 fw-semibold px-3 w-100"
+                            onClick={handleDownloadDocument}
+                            disabled={selectedIds.length === 0 || feedback === "loading"}
+                            style={selectedIds.length === 0 ? { pointerEvents: "none" } : undefined}
+                        >
+                            <i className="bi bi-file-earmark-excel" />
+                            Descargar documento
+                        </Button>
+                    </span>
+                </OverlayTrigger>
+
+                <ConditionalRender cond={selectedIds.length > 0}>
+                    <span className="d-inline-flex align-items-center gap-2 small text-muted">
+                        <span className="fw-semibold">
+                            {selectedIds.length} seleccionado{selectedIds.length !== 1 ? "s" : ""}
+                        </span>
+                        <Button variant="link" size="sm" className="p-0" onClick={() => setSelectedIds([])}>
+                            Limpiar
+                        </Button>
+                    </span>
+                </ConditionalRender>
             </div>
 
                 <div className="d-flex justify-content-between align-items-center mb-4 mt-4">
@@ -337,6 +364,19 @@ export default function TableBonusKeys({
                                             <table className="table table-hover align-middle mb-0">
                                                 <thead className="table-dark border-secondary">
                                                     <tr>
+                                                        <th className="text-center" style={{ width: 48 }}>
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                id="bonus-select-all"
+                                                                aria-label="Seleccionar todos los bonos visibles"
+                                                                checked={allVisibleSelected}
+                                                                disabled={visibleIds.length === 0}
+                                                                ref={(el: HTMLInputElement | null) => {
+                                                                    if (el) el.indeterminate = someVisibleSelected;
+                                                                }}
+                                                                onChange={toggleAllVisible}
+                                                            />
+                                                        </th>
                                                         {columns.map((column) => (
                                                             <th
                                                                 key={String(column.key)}
@@ -354,7 +394,7 @@ export default function TableBonusKeys({
 
                                                     <ConditionalRender cond={bonuskeys?.length === 0}>
                                                         <tr>
-                                                            <td colSpan={columns.length + 1} className="text-center py-5 text-muted">
+                                                            <td colSpan={columns.length + 2} className="text-center py-5 text-muted">
                                                                 <i
                                                                     className={`bi ${search ? "bi-clipboard-x" : "bi-inbox"} d-block mb-2`}
                                                                     style={{ fontSize: "2.5rem" }}
@@ -369,7 +409,16 @@ export default function TableBonusKeys({
                                                     </ConditionalRender>
 
                                                     {(bonuskeys ?? []).map((row) => (
-                                                        <tr key={row.id}>
+                                                        <tr key={row.id} className={selectedSet.has(Number(row.id)) ? "table-active" : undefined}>
+                                                            <td className="text-center">
+                                                                <Form.Check
+                                                                    type="checkbox"
+                                                                    id={`bonus-select-${row.id}`}
+                                                                    aria-label={`Seleccionar bono ${row.id}`}
+                                                                    checked={selectedSet.has(Number(row.id))}
+                                                                    onChange={() => toggleOne(Number(row.id))}
+                                                                />
+                                                            </td>
                                                             {columns.map((column) => (
                                                                 <td key={String(column.key)}>
                                                                     {column.render

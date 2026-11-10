@@ -194,49 +194,50 @@ export async function deleteBonusKeys({
     }
 }
 
-export async function downloadDocBonusKeys(): Promise<ActionResponse<IGenerateDocBonusKey>> {
+// Descarga el Excel solo con los bonos seleccionados (?ids=10,11).
+// Sin ids el back regresaría todos, pero la pantalla siempre manda la selección; "ids=" vacío da 400.
+export async function downloadDocBonusKeys(ids: Array<number | string>): Promise<ActionResponse<IGenerateDocBonusKey>> {
+    const cleanIds = ids.map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (cleanIds.length === 0) {
+        return { success: false, message: "Selecciona al menos un bono" };
+    }
+
     try {
         const { apiToken, apiUrl } = await storeToken();
 
-        let base64Url = '';
+        const res = await axios.get(`${apiUrl}/bonuskeys/download/excel`, {
+            params: { ids: cleanIds.join(",") },
+            headers: { Authorization: `Bearer ${apiToken}` },
+            responseType: "arraybuffer",
+        });
 
-            await axios.get(`${apiUrl}/bonuskeys/download/excel`, {
-                headers: { Authorization: `Bearer ${apiToken}` },
-                responseType: "arraybuffer",
-            }).then((res) => {
-                const base64 = Buffer.from(res.data).toString("base64");
-                base64Url = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`;
-            }).catch((err) => {
-                throw new Error(
-                    err.response?.data?.message
-                        ? err.response.data.message
-                        : "Error al obtener el documento"
-                );
-            });
+        // Un JSON con estado 200 no es el archivo: no se descarga un Excel dañado
+        if (String(res.headers["content-type"] ?? "").includes("application/json")) {
+            return { success: false, message: "El servidor no regresó el documento. Intenta de nuevo más tarde." };
+        }
 
-
-        revalidatePath("/app/bonuskeys");
-
+        const base64 = Buffer.from(res.data).toString("base64");
         return {
             success: true,
             message: "Documento generado",
-            data: { base64Url },
+            data: { base64Url: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}` },
         };
-
     } catch (error: unknown) {
         console.log(error);
-
-        let message = "Error en la respuesta";
-
-        if (axios.isAxiosError(error)) {
-            message = error.response?.data?.message || error.message || message;
-        } else if (error instanceof Error) {
-            message = error.message;
+        if (!axios.isAxiosError(error)) {
+            return { success: false, message: error instanceof Error ? error.message : "Error al obtener el documento" };
         }
 
-        return {
-            success: false,
-            message,
-        };
+        // El error llega como binario: se decodifica el JSON para leer `message`
+        let message = error.response?.status === 404
+            ? "Ninguno de los bonos seleccionados existe"
+            : "Error al obtener el documento";
+        try {
+            const body = JSON.parse(Buffer.from(error.response?.data as ArrayBuffer).toString("utf8"));
+            if (body?.message) message = body.message;
+        } catch {
+            // Sin cuerpo JSON: se queda el mensaje por estado
+        }
+        return { success: false, message };
     }
 }
