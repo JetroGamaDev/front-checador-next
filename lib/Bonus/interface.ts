@@ -8,6 +8,7 @@ export interface IBonusKeys {
 
     employee?: {
         id: number;
+        idCheck?: number | null;
         name: string;
         lastName: string;
     },

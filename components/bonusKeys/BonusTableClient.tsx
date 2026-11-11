@@ -147,14 +147,15 @@ export default function TableBonusKeys({
 
     const columns: TableTemplateColumn<IBonusKeys>[] = [
         {
-            key: "id",
-            label: "ID",
-            accessor: (r) => r.id,
+            // Se muestra el número de empleado (idCheck); la selección para el Excel sigue siendo por id del bono
+            key: "idCheck",
+            label: "ID empleado",
+            accessor: (r) => r.employee?.idCheck ?? "",
             filterable: true,
             type: "string",
             render: (r) => (
                 <div className="text-uppercase">
-                    {r.id}
+                    {r.employee?.idCheck ?? "—"}
                 </div>
             ),
         },
