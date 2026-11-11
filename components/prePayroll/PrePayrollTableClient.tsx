@@ -14,7 +14,8 @@ import { IPeriod } from "../attendanceReportComponents/AttendanceFiltersBar";
 import ModalBlur from "../ModalBlur";
 import UpdateModal from "./UpdateModal";
 import { useModals } from "@/context/ModalContext";
-import { completePrepayroll, downloadDocumentPrenom, generateDocumentPrenom } from "@/app/actions/prePayroll-actions";
+import { completePrepayroll, downloadDocumentPrenom, downloadNomipaqPrenom, generateDocumentPrenom } from "@/app/actions/prePayroll-actions";
+import OverLay from "../templates/OverLay";
 import SuccessOverlay from "../SuccessOverlay";
 import ErrorOverlay from "../ErrorOverlay";
 import { es } from "date-fns/locale";
@@ -484,6 +485,34 @@ export default function PrePayrollTableClient({
     };
 
 
+    //Descargar FORMATO NOMIPAQ (independiente del documento; siempre con los datos actuales, sin caché)
+    const handleDownloadNomipaq = async () => {
+        const idPrePayRoll = prepayroll[0]?.idPrePayRoll;
+        if (!idPrePayRoll || feedback === "loading") return;
+
+        setFeedback("loading");
+        setFeedbackMsg("Generando formato Nomipaq...");
+
+        const res = await downloadNomipaqPrenom({
+            idPrePayRoll,
+            numberPeriod: selectedPeriod?.numberPeriod,
+        });
+
+        if (!res.success || !res.data) {
+            setFeedbackMsg(res.message || "Error al generar la plantilla de Nomipaq");
+            setFeedback("error");
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.href = res.data.base64Url;
+        link.download = res.data.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setFeedback(null);
+    };
+
     const triggerDownload = useCallback((base64Url: string, idPrePayRoll: number) => {
         const link = document.createElement("a");
         link.href = base64Url;
@@ -676,6 +705,21 @@ export default function PrePayrollTableClient({
                         <i className="bi bi-file-earmark-excel" />
                         Descargar documento
                     </Button>
+                </ConditionalRender>
+
+                {/* Solo con la prenómina completa; no depende de que el documento ya exista */}
+                <ConditionalRender cond={prepayrollextra?.complete === true && !!prepayroll[0]?.idPrePayRoll}>
+                    <OverLay string="Plantilla de incidencias por día para importar en Nomipaq">
+                        <Button
+                            variant="dark"
+                            className="d-inline-flex align-items-center gap-2 fw-semibold px-3 ms-2"
+                            onClick={handleDownloadNomipaq}
+                            disabled={feedback === "loading"}
+                        >
+                            <i className="bi bi-file-earmark-spreadsheet" />
+                            Descargar formato Nomipaq
+                        </Button>
+                    </OverLay>
                 </ConditionalRender>
 
                 <div className="d-flex justify-content-between align-items-center mb-4 mt-4">

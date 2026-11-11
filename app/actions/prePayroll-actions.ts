@@ -272,6 +272,70 @@ export async function generateDocumentPrenom({
     }
 }
 
+// Formato Nomipaq de la prenómina (plantilla de incidencias por día). Es independiente del
+// "documento" de la prenómina: no lo genera ni lo necesita y siempre sale con los datos actuales.
+// En error el back regresa JSON { status, message, data: null }: se decodifica para leer `message`.
+export async function downloadNomipaqPrenom({
+    idPrePayRoll,
+    numberPeriod,
+}: {
+    idPrePayRoll: number;
+    numberPeriod?: number | string;
+}): Promise<ActionResponse<{ base64Url: string; fileName: string }>> {
+    try {
+        const { apiToken, apiUrl } = await storeToken();
+
+        const res = await axios.get(`${apiUrl}/nomipaqPrePayroll/${idPrePayRoll}`, {
+            headers: { Authorization: `Bearer ${apiToken}` },
+            responseType: "arraybuffer",
+        });
+
+        // Un JSON con estado 200 no es el archivo: no se descarga un Excel dañado
+        if (String(res.headers["content-type"] ?? "").includes("application/json")) {
+            return { success: false, message: "El servidor no regresó el formato Nomipaq. Intenta de nuevo más tarde." };
+        }
+
+        // Nombre desde Content-Disposition (filename*=UTF-8''... o filename="...")
+        const disposition = String(res.headers["content-disposition"] ?? "");
+        const match = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i);
+        let fileName = `nomipaq-periodo-${numberPeriod ?? idPrePayRoll}.xlsx`;
+        if (match) {
+            const raw = (match[1] ?? match[2]).trim();
+            try {
+                fileName = decodeURIComponent(raw);
+            } catch {
+                fileName = raw;
+            }
+        }
+
+        const base64 = Buffer.from(res.data).toString("base64");
+        return {
+            success: true,
+            message: "Formato Nomipaq generado",
+            data: {
+                base64Url: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${base64}`,
+                fileName,
+            },
+        };
+    } catch (error: unknown) {
+        console.log(error);
+        if (!axios.isAxiosError(error)) {
+            return { success: false, message: error instanceof Error ? error.message : "Error al generar la plantilla de Nomipaq" };
+        }
+
+        let message = error.response?.status === 404
+            ? "No se encontró la prenómina"
+            : "Error al generar la plantilla de Nomipaq";
+        try {
+            const body = JSON.parse(Buffer.from(error.response?.data as ArrayBuffer).toString("utf8"));
+            if (body?.message) message = body.message;
+        } catch {
+            // Sin cuerpo JSON: se queda el mensaje por estado
+        }
+        return { success: false, message };
+    }
+}
+
 export async function downloadDocumentPrenom({
     idPrePayRoll
 }: {
