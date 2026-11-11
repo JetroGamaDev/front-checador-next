@@ -215,11 +215,12 @@ export default function UserProfileView({
                       <div className="d-flex align-items-start justify-content-between gap-3">
                         <div className="d-flex align-items-center gap-2 text-muted">
                           <i className="bi bi-hash text-secondary" />
-                          <span>ID Empleado relacionado</span>
+                          <span>ID Empleado</span>
                         </div>
 
+                        {/* Número de empleado (idCheck de /me). Null = usuario del sistema sin empleado ligado */}
                         <span className="fw-semibold text-end">
-                          {formatText(user.idEmployee)}
+                          {user.idCheck ?? "—"}
                         </span>
                       </div>
                     </div>

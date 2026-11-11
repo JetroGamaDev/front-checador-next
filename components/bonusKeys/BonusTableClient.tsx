@@ -487,6 +487,7 @@ export default function TableBonusKeys({
                             idRegister={idRegister}
                             employeeName={employeeName}
                             employeeLastName={employeeLastName}
+                            employeeIdCheck={(bonuskeys ?? []).find((b) => Number(b.id) === idRegister)?.employee?.idCheck ?? null}
                             Register={selectedBonus!}
 
                         />

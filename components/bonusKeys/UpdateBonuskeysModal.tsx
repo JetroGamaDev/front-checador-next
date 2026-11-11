@@ -21,6 +21,8 @@ type ModalProps = {
     idRegister: number | null;
     employeeName: string | null;
     employeeLastName: string | null;
+    // Número de empleado (idCheck) que regresa getAll/findOne
+    employeeIdCheck?: number | null;
 }
 
 function getDefaultValues(register?: IUpdateBonusKeys | null): IUpdateBonusKeys {
@@ -35,6 +37,7 @@ export default function UpdateBonusKeys({
     idRegister,
     employeeName,
     employeeLastName,
+    employeeIdCheck,
     onHide
 }: ModalBasicProps & ModalProps) {
     const {
@@ -110,6 +113,7 @@ export default function UpdateBonusKeys({
                         <p className="text-muted mb-0 mt-2">
                             Se actualizará la información del bono del empleado: <br />
                             <strong className="text-capitalize text-primary"> {employeeName} {employeeLastName}.</strong>
+                            <span className="d-block small mt-1">ID empleado: {employeeIdCheck ?? "—"}</span>
                         </p>
                     </div>
 
