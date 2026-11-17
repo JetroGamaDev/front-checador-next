@@ -88,13 +88,13 @@ function NewsletterFormView({
   const [dateErrorEnd] = useState("");
   const dateButtonRefEnd = useRef(null);
 
-  const selectedDateEnd = watch("dateInitiPublish");
+  const selectedDateEnd = watch("dateEndPublish");
   const parsedDateEnd = selectedDateEnd
     ? moment(selectedDateEnd, "YYYY-MM-DD").toDate()
     : null;
 
   const handleDateChangeEnd = (date: Date | null) => {
-    setValue("dateInitiPublish", date ? moment(date).format("YYYY-MM-DD") : "", { shouldDirty: true });
+    setValue("dateEndPublish", date ? moment(date).format("YYYY-MM-DD") : "", { shouldDirty: true });
   };
 
 
@@ -408,7 +408,7 @@ function NewsletterFormView({
                             <h6 className="mb-0 fw-bold">Imagen</h6>
                           </div>
 
-                          <div className="w-100 text-center overflow-hidden">
+                          <div className="w-100 text-center pt-2 pe-2">
                             <ImageField
                               {...register("img")}
                               height={0}

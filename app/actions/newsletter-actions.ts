@@ -194,29 +194,27 @@ export async function createNewsletter({
           },
         }
       ).then(async (res) => {
-        console.log("RES NOTICE: ", res);
-        
-        console.log("IMAGEN DE NOTICIA" + data.img);
-        const file = data.img || "";
-        const formData = new FormData();
-        formData.append("img", file);
+        const noticeId = res.data?.data?.id;
+        const file = data.img;
 
-        if (!res.data.data.id && !file) throw new Error("Error de imagen");
+        // Solo se sube la imagen si se creó la noticia y se seleccionó un archivo
+        if (noticeId && file) {
+          const formData = new FormData();
+          formData.append("img", file);
 
-        await axios.put(`${apiUrl}/notice/img/${res.data.data.id}`, formData, {
+          await axios.put(`${apiUrl}/notice/img/${noticeId}`, formData, {
             headers: {
               Authorization: `Bearer ${apiToken}`,
             },
-          })
-          .then((resImg) => {
-            console.log("resImg: ",resImg);
-            
-            return resImg;
           });
-        return res;
+        }
+
+        return res.data;
       }).catch((err) => {
-      console.log("ERROR DE CATCH:", err);
-      throw new Error("Error en la respuesta");
+      console.log("ERROR DE CATCH:", err?.response?.data || err);
+      throw new Error(
+        err?.response?.data?.message || "Error en la respuesta"
+      );
     });
 
     revalidatePath("/app/newsletter");
@@ -224,7 +222,7 @@ export async function createNewsletter({
     return {
       success: true,
       message: "Se ha creador la publicación",
-      data: response.data,
+      data: response.data || null,
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
