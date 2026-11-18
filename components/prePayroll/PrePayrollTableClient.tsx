@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { formatCreatedAt } from "@/lib/helpers";
 import ConditionalRender from "../ConditionalRender";
 import Loading from "../LoadingSpinner";
-import { Button, Card, Col, Container, Dropdown, InputGroup, Pagination, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, Dropdown, InputGroup, OverlayTrigger, Pagination, Row, Tooltip } from "react-bootstrap";
 import ListView from "../templates/ListView";
 import { useRouter, useSearchParams } from "next/navigation";
 import GenericSearchInput from "../employee/GenericSearchInput";
@@ -154,7 +154,8 @@ export default function PrePayrollTableClient({
     const [showModalUpdate, setShowModalUpdate] = useState(false);
     const hasAppliedDefaultFilters = useRef(false);
     const [isPending, startTransition] = useTransition();
-    const dates = prepayroll.map((f) => f.fechaNomina);
+    // Las vacaciones pendientes de autorizar no admiten fecha nómina: no bloquean la validación
+    const dates = prepayroll.filter((f) => f.pendingApproval !== true).map((f) => f.fechaNomina);
     const datesComplete = dates.every((n) => n !== null);
     const [docBase64Url, setDocBase64Url] = useState<string | null>(null);
     const totalPages = Math.ceil(total / limit);
@@ -569,7 +570,16 @@ export default function PrePayrollTableClient({
                 filterable: true,
                 type: "string",
                 align: "center",
-                render: (row) => <div className="text-center">{statusVariant(row.incidenceRef, row.data.category)} </div>
+                render: (row) => (
+                    <div className="d-flex flex-wrap justify-content-center align-items-center gap-1">
+                        {statusVariant(row.incidenceRef, row.data.category)}
+                        <ConditionalRender cond={row.pendingApproval === true}>
+                            <span className="badge rounded-pill px-3 py-2 fw-semibold bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                PENDIENTE DE AUTORIZAR
+                            </span>
+                        </ConditionalRender>
+                    </div>
+                )
             },
             {
                 key: "notes",
@@ -922,13 +932,34 @@ export default function PrePayrollTableClient({
                                                                 <div className="d-flex justify-content-center align-items-center gap-2">
 
                                                                     <ConditionalRender cond={prepayrollextra?.complete === false}>
-                                                                        <Button
-                                                                            variant="outline-info"
-                                                                            className="btn-sm"
-                                                                            onClick={() => handleUpdate(row)}
-                                                                        >
-                                                                            Actualizar
-                                                                        </Button>
+                                                                        <ConditionalRender cond={row.pendingApproval !== true}>
+                                                                            <Button
+                                                                                variant="outline-info"
+                                                                                className="btn-sm"
+                                                                                onClick={() => handleUpdate(row)}
+                                                                            >
+                                                                                Actualizar
+                                                                            </Button>
+                                                                        </ConditionalRender>
+
+                                                                        {/* Vacaciones sin autorizar: el botón deshabilitado no recibe el mouse, el tooltip va en el contenedor */}
+                                                                        <ConditionalRender cond={row.pendingApproval === true}>
+                                                                            <OverlayTrigger
+                                                                                placement="top"
+                                                                                overlay={<Tooltip id={`prepayroll-pending-${row.idUnique}`}>Las vacaciones aún no están autorizadas por el líder</Tooltip>}
+                                                                            >
+                                                                                <span className="d-inline-block">
+                                                                                    <Button
+                                                                                        variant="outline-info"
+                                                                                        className="btn-sm"
+                                                                                        disabled
+                                                                                        style={{ pointerEvents: "none" }}
+                                                                                    >
+                                                                                        Actualizar
+                                                                                    </Button>
+                                                                                </span>
+                                                                            </OverlayTrigger>
+                                                                        </ConditionalRender>
                                                                     </ConditionalRender>
 
                                                                     <a

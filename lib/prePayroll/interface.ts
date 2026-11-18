@@ -14,6 +14,8 @@ export interface IPrePayroll {
     day: string | null;
     notes?: string;
     complete?: boolean;
+    // VACACIONES que el líder aún no autoriza: no se puede asignar fecha nómina ni cuentan en los Excel
+    pendingApproval?: boolean;
 }
 
 interface Idata {
