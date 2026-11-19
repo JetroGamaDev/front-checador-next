@@ -1,11 +1,10 @@
 "use client"
 
-import { DeviceType, IDevices } from "@/lib/devices/interface"
+import { IDevices, IWaiverContent } from "@/lib/devices/interface"
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import moment from "moment-timezone";
 import SignatureEmployeeModal from "./SignatureEmployeeModal";
 import SignatureITModal from "./SignatureITModal";
 import ConditionalRender from "../ConditionalRender";
@@ -20,106 +19,55 @@ import SignatureDeviceThree from "./SignatureDeviceThree";
 import SignatureEmployeeModalTwo from "./SignatureEmployeeModalTwo";
 import SignatureITModalTwo from "./SignatureITModalTwo";
 
-moment.locale("es");
-
 type FeedbackState = "loading" | "success" | "error" | null;
 
 type ModalAction = {
     device: IDevices;
     idDevice: number;
+    waiver: IWaiverContent | null;
+    waiverError?: string;
 }
 
-function typeDevice(type: DeviceType | null) {
-    switch ((type ?? "")) {
-        case "computadora":
-            return (
-                <span>una computadora </span>
-            )
-        case "laptop":
-            return (
-                <span>una laptop </span>
-            )
-        case "celular":
-            return (
-                <span>un celular </span>
-            )
-        case "tablet":
-            return (
-                <span>una tablet </span>
-            )
-        case "impresora":
-            return (
-                <span>una impresora </span>
-            )
-        case "servidor":
-            return (
-                <span>un servidor </span>
-            )
-        case "switch":
-            return (
-                <span>un switch </span>
-            )
-        case "router":
-            return (
-                <span>un router </span>
-            )
-        case "telefono_ip":
-            return (
-                <span>un teléfono IP </span>
-            )
-        case "camara":
-            return (
-                <span>una cámara </span>
-            )
-        case "access_point":
-            return (
-                <span>un access point </span>
-            )
-        case "television":
-            return (
-                <span>una televisión </span>
-            )
-        case "otro":
-            return (
-                <span>un dispositivo </span>
-            )
-        default:
-            return (
-                <span></span>
-            )
-    }
-}
+// Cuerpo de la carta tal cual lo manda el back: no se filtran ni reordenan renglones
+// (un value vacío o "$" es para llenarse a mano en el impreso)
+function WaiverBody({ waiver }: { waiver: IWaiverContent }) {
+    return (
+        <div className="d-flex flex-column gap-3" style={{ lineHeight: 1.7, textAlign: "justify" }}>
+            <p className="mb-0 text-end">{waiver.placeAndDate}</p>
 
-function formatLabel(value: string) {
-    return value
-        .replace(/_/g, " ")
-        .replace(/-/g, " ")
-        .trim();
+            <p className="mb-0">{waiver.intro}</p>
+
+            <table className="table table-bordered align-middle mb-0" style={{ textAlign: "left", tableLayout: "fixed" }}>
+                <tbody>
+                    {(waiver.rows ?? []).map((row, i) => (
+                        <tr key={`${row.label}-${i}`}>
+                            <th scope="row" className="fw-bold" style={{ width: "30%", wordBreak: "break-word" }}>
+                                {row.label}:
+                            </th>
+                            <td style={{ wordBreak: "break-word" }}>{row.value ?? ""}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {(waiver.clauses ?? []).map((clause, i) => (
+                <p key={`${clause.title}-${i}`} className="mb-0">
+                    <strong>{clause.title}</strong> {clause.text}
+                </p>
+            ))}
+        </div>
+    );
 }
 
 export default function ResposiveDoc({
     device,
+    waiver,
+    waiverError,
 }: ModalAction) {
     const router = useRouter();
     const [feedback, setFeedback] = useState<FeedbackState>(null);
     const [feedbackMsg, setFeedbackMsg] = useState("");
     const { modalConfirm } = useModals();
-
-    const dia = device.currentAssignment?.assignedAt
-        ? moment.utc(device.currentAssignment.assignedAt, "YYYY-MM-DD").format("DD")
-        : "--";
-
-    const mes = device.currentAssignment?.assignedAt
-        ? moment.utc(device.currentAssignment.assignedAt, "YYYY-MM-DD").format("MMMM")
-        : "--";
-
-    const anio = device.currentAssignment?.assignedAt
-        ? moment.utc(device.currentAssignment.assignedAt, "YYYY-MM-DD").format("YYYY")
-        : "--";
-
-    const mesCapitalizado = mes.charAt(0).toUpperCase() + mes.slice(1);
-
-    const fechaActual = `${dia} de ${mesCapitalizado} de ${anio}`;
 
     const [signatureEmployee, setSignatureEmployee] = useState(false);
     const [signatureEmployeeTwo, setSignatureEmployeeTwo] = useState(false);
@@ -128,28 +76,6 @@ export default function ResposiveDoc({
     const [completeSignatures, setCompleteSignatures] = useState(false);
     const [signaturesOneComplete, setSignaturesOneComplete] = useState(false);
     const [showSecondSignatures, setShowSecondSignatures] = useState(false);
-
-    //INFO NECESARIA
-    const marca = device.specs && device.specs.brand && device.specs.brand.trim() !== '' && device.specs.brand.trim() !== 'x' ? device.specs.brand.trim() : '';
-    const type = device?.type;
-    const modelo = device.specs && device.specs.model && device.specs.model.trim() !== '' && device.specs.model.trim() !== 'x' ? device.specs.model.trim() : '';
-    const numero_serie = device.specs && device.specs.serialNumber && device.specs.serialNumber.trim() !== '' && device.specs.serialNumber.trim() !== 'x' ? device.specs.serialNumber.trim() : '';
-    const procesador = device.specs && device.specs.processor && device.specs.processor.trim() !== '' && device.specs.processor.trim() !== 'x' ? device.specs.processor.trim() : '';
-    const ram = device.specs && device.specs.ram && device.specs.ram.trim() !== '' && device.specs.ram.trim() !== 'x' ? device.specs.ram.trim() : '';
-    const almacenamiento = device.specs && device.specs.storage && device.specs.storage.trim() !== '' && device.specs.storage.trim() !== 'x' ? device.specs.storage.trim() : '';
-    const sistema_operativo = device.specs && device.specs.os && String(device.specs.os).trim() !== '' && String(device.specs.os).trim() !== 'x' ? String(device.specs.os).trim() : '';
-    const sistema_operativo_version = device.specs && device.specs.osVersion && String(device.specs.osVersion).trim() !== '' && String(device.specs.osVersion).trim() !== 'x' ? String(device.specs.osVersion).trim() : '';
-    const hasNotes = device.notes && device.notes && device.notes !== '' && device.notes.trim() !== 'x' ? device.notes.trim() : '';
-    const idDevice = device.specs && device.specs.idDevice && device.specs.idDevice.trim() !== '' && device.specs.idDevice.trim() !== 'x' ? device.specs.idDevice : '';
-    const idProduct = device.specs && device.specs.idProduct && device.specs.idProduct.trim() !== '' && device.specs.idProduct.trim() !== 'x' ? device.specs.idProduct : '';
-
-    const isVLAN1 = device.networkInfo.filter((v => v.vlan === "1"))
-    const isVLAN20 = device.networkInfo.filter((v => v.vlan === "20"))
-    const macVlan1 = device.networkInfo.filter((m) => m.vlan === "1").map((m) => m.mac).join(", ");
-    const macVlan20 = device.networkInfo.filter((m) => m.vlan === "20").map((m) => m.mac).join(", ");
-    const number = device.currentAssignment?.phoneNumber?.nationalNumber
-    const isPhone = device.type === "telefono_ip" || device.type === "celular";
-    const currentStatus = device.specs?.currentStatus ?? "";
 
     const isSignatureComplete = (label: string) => {
         const matches = device.currentAssignment?.signatures?.filter((l) => l.label === label) ?? [];
@@ -314,7 +240,7 @@ export default function ResposiveDoc({
                                     className="flex-shrink-0"
                                     style={{ objectFit: "contain", width: "clamp(100px, 25vw, 150px)", height: "auto" }}
                                 />
-                                <h5 className="mb-0 fw-bold">Carta Responsiva</h5>
+                                <h5 className="mb-0 fw-bold" style={{ minWidth: 0 }}>{waiver?.title || "Carta Responsiva"}</h5>
                             </div>
 
                             <span className="badge rounded-pill px-3 py-2 fw-semibold bg-warning-subtle text-warning-emphasis border border-warning-subtle flex-shrink-0 ms-auto">
@@ -324,91 +250,16 @@ export default function ResposiveDoc({
 
                         <Card className="border rounded-0 mb-4">
                             <Card.Body>
-                                <div className="d-flex flex-column gap-4 text-justify" style={{ lineHeight: 1.7, textAlign: "justify" }}>
+                                <ConditionalRender cond={!!waiver}>
+                                    <WaiverBody waiver={waiver as IWaiverContent} />
+                                </ConditionalRender>
 
-                                    <p className="mb-0">
-                                        Por medio de la presente que suscribe declara recibir como herramienta de trabajo{" "}
-                                        <strong>{typeDevice(type)}</strong>
-                                        <ConditionalRender cond={currentStatus !== ""}>
-                                            <><strong>{currentStatus}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={hasNotes !== ""}>
-                                            <><strong>, {hasNotes}. </strong></>
-                                        </ConditionalRender>
-                                        Mismo que cuenta con las siguientes características:{" "}
-                                        <ConditionalRender cond={marca !== ""}>
-                                            <>marca <strong>{marca}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={modelo !== ""}>
-                                            <>, modelo <strong>{modelo}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={numero_serie !== ""}>
-                                            <>, número de serie <strong>{numero_serie}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={procesador !== ""}>
-                                            <>, procesador <strong>{procesador}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={ram !== ""}>
-                                            <>, <strong>{ram}</strong> de RAM</>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={almacenamiento !== ""}>
-                                            <>, <strong>{almacenamiento}</strong> de almacenamiento</>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={sistema_operativo !== ""}>
-                                            <>, sistema operativo <strong>{formatLabel(sistema_operativo)}</strong>
-                                                <ConditionalRender cond={sistema_operativo_version !== ""}>
-                                                    <> con versión <strong>{sistema_operativo_version}</strong></>
-                                                </ConditionalRender>
-                                            </>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={idDevice !== ""}>
-                                            <>, id del dispositivo: <strong>{idDevice}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={idProduct !== ""}>
-                                            <>, id del producto: <strong>{idProduct}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={isVLAN1.length > 0}>
-                                            <>, con VLAN 1 de MAC <strong>{macVlan1}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={isVLAN20.length > 0}>
-                                            <>, con VLAN 20 de MAC <strong>{macVlan20}</strong></>
-                                        </ConditionalRender>
-                                        <ConditionalRender cond={isPhone !== false}>
-                                            <>, y número Telcel: <strong>{number}</strong></>
-                                        </ConditionalRender>
-                                    </p>
-
-                                    <p className="mb-0">
-                                        Comprometiéndose a mantenerlo en el estado en el que lo recibe, cuidando dicho material como si el mismo fuera
-                                        de su propiedad, en el entendido de que en caso de que el mismo sufra cualquier daño ocasionado por su dolo o
-                                        negligencia se hará responsable de la reparación del mismo. En caso de que, por causas inherentes al uso o
-                                        desgaste normales del equipo, el mismo requiera cualquier reparación, el que suscribe notificará tal circunstancia a
-                                        la empresa para que la misma le indique las condiciones en las que las reparaciones o trabajo de mantenimiento
-                                        sobre el mismo habrán de realizarse.
-                                    </p>
-
-                                    <p className="mb-0">
-                                        El suscriptor de este documento reconoce que el equipo que se le entrega solo podrá ser utilizado para cumplir las
-                                        tareas que le encomienda la empresa en calidad de patrón y que no podrá hacer uso del mismo para cuestiones de
-                                        carácter personal. Asimismo, se compromete a emplear el equipo únicamente de acuerdo con las condiciones y
-                                        especificaciones que para dichos efectos haga de su conocimiento la empresa, obligándose a no modificarlo ni el
-                                        hardware ni el software, es decir no agregar ni suprimir ningún programa de los que se encuentren cargados
-                                        originalmente sin el expreso consentimiento por escrito de la empresa.
-                                    </p>
-
-                                    <p className="mb-0">
-                                        El que suscribe reconoce que los derechos sobre el equipo objeto de la presente corresponden exclusivamente a
-                                        Gama Consumibles Especiales S. de R.L. de C.V. en términos del contrato que tiene celebrado con el proveedor del
-                                        mismo por lo que a la simple solicitud de la empresa se obliga a devolver el equipo que se le entrega a la firma del
-                                        presente y, en todo caso, al terminar su relación laboral con la compañía dejará de utilizar el mismo haciendo
-                                        entrega de él al personal que se le indique en el mismo estado en que lo haya recibido, salvo deterioro debido al
-                                        uso normal del equipo.
-                                    </p>
-
-                                    <p className="mb-0 text-end">
-                                        Tlaquepaque, Jal. a <strong>{fechaActual}</strong>
-                                    </p>
-                                </div>
+                                <ConditionalRender cond={!waiver}>
+                                    <div className="d-flex flex-column align-items-center text-center text-muted py-4 gap-2">
+                                        <i className="bi bi-file-earmark-x" style={{ fontSize: "2rem" }} />
+                                        <span>{waiverError || "No se pudo cargar el contenido de la responsiva"}</span>
+                                    </div>
+                                </ConditionalRender>
                             </Card.Body>
                         </Card>
 
@@ -424,7 +275,10 @@ export default function ResposiveDoc({
                                     <Col xs={12} md={6}>
                                         <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100 w-100">
                                             <span className="fw-semibold text-capitalize">{device.employee?.name} {device.employee?.lastName}</span>
-                                            <span className="text-muted small">Empleado</span>
+                                            <ConditionalRender cond={!!waiver?.employeePosition}>
+                                                <span className="small text-uppercase">{waiver?.employeePosition}</span>
+                                            </ConditionalRender>
+                                            <span className="text-muted small">Nombre y firma del trabajador</span>
 
                                             <ConditionalRender cond={!firstSignatureEmployee}>
                                                 <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center gap-2">
@@ -471,7 +325,10 @@ export default function ResposiveDoc({
                                     <Col xs={12} md={6}>
                                         <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100">
                                             <span className="fw-semibold text-capitalize">{device.personIt?.name} {device.personIt?.lastName}</span>
-                                            <span className="text-muted small">Persona IT</span>
+                                            <ConditionalRender cond={!!waiver?.itPosition}>
+                                                <span className="small text-uppercase">{waiver?.itPosition}</span>
+                                            </ConditionalRender>
+                                            <span className="text-muted small">Nombre, puesto y firma por la empresa</span>
 
                                             <ConditionalRender cond={!firstSignatureIt}>
                                                 <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center gap-2">
@@ -518,7 +375,10 @@ export default function ResposiveDoc({
                                         <Col xs={12} md={6}>
                                             <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100 w-100">
                                                 <span className="fw-semibold text-capitalize">{device.employee?.name} {device.employee?.lastName}</span>
-                                                <span className="text-muted small">Empleado</span>
+                                                <ConditionalRender cond={!!waiver?.employeePosition}>
+                                                    <span className="small text-uppercase">{waiver?.employeePosition}</span>
+                                                </ConditionalRender>
+                                                <span className="text-muted small">Nombre y firma del trabajador</span>
 
                                                 <ConditionalRender cond={!secondSignatureEmployee}>
                                                     <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center gap-2">
@@ -563,7 +423,10 @@ export default function ResposiveDoc({
                                         <Col xs={12} md={6}>
                                             <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100">
                                                 <span className="fw-semibold text-capitalize">{device.personIt?.name} {device.personIt?.lastName}</span>
-                                                <span className="text-muted small">Persona IT</span>
+                                                <ConditionalRender cond={!!waiver?.itPosition}>
+                                                    <span className="small text-uppercase">{waiver?.itPosition}</span>
+                                                </ConditionalRender>
+                                                <span className="text-muted small">Nombre, puesto y firma por la empresa</span>
 
                                                 <ConditionalRender cond={!secondSignatureIt}>
                                                     <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center gap-2">

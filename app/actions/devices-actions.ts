@@ -1,7 +1,7 @@
 "use server"
 
 import { FetchUsersArgs } from "@/lib/constancy/interface";
-import { IAssignDevice, IDevices, IUpdateCurrentUser } from "@/lib/devices/interface";
+import { IAssignDevice, IDevices, IUpdateCurrentUser, IWaiverContent } from "@/lib/devices/interface";
 import { storeAction } from "./storeActions";
 import axios from "axios";
 import { ActionResponse } from "@/lib/definitions";
@@ -22,6 +22,17 @@ function getPhoneString(
   return value.internationalNumber || value.number || "";
 }
 
+// IMEI vacío va como null; el valor del equipo va como número o null (el input number llega como texto o NaN)
+function normalizeSpecs(specs: IDevices["specs"]): IDevices["specs"] {
+  if (!specs) return specs;
+  const imei = typeof specs.imei === "string" ? specs.imei.trim() : "";
+  const rawValue = specs.value as unknown;
+  const value =
+    rawValue === null || rawValue === undefined || rawValue === "" || Number.isNaN(Number(rawValue))
+      ? null
+      : Number(rawValue);
+  return { ...specs, imei: imei || null, value };
+}
 
 //LISTAR TODOS LOS DISPOSITIVOS
 export async function ListDevices(args: FetchUsersArgs & {
@@ -144,6 +155,37 @@ export async function ListOneDevice({
   }
 }
 
+//CONTENIDO DE LA CARTA RESPONSIVA (lo arma el back, igual que el PDF)
+export async function getWaiverContent({
+  idDevice,
+}: {
+  idDevice: number;
+}): Promise<ActionResponse<IWaiverContent | null>> {
+  const fallback = "No se pudo cargar el contenido de la responsiva";
+  try {
+    if (!idDevice || idDevice <= 0) {
+      return { success: false, message: "No se encontró el dispositivo", data: null };
+    }
+
+    const { apiToken, API_URL } = await storeAction();
+
+    const res = await axios.get(`${API_URL}/devices-waiverContent/${idDevice}`, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+
+    const data: IWaiverContent | null = res.data?.data ?? null;
+    if (!data) return { success: false, message: fallback, data: null };
+
+    return { success: true, message: res.data?.message || "Contenido de la responsiva", data };
+  } catch (error: unknown) {
+    console.log(error);
+    const message = axios.isAxiosError<{ message?: string }>(error)
+      ? error.response?.data?.message || fallback
+      : fallback;
+    return { success: false, message, data: null };
+  }
+}
+
 //CREAR DISPOSITIVO
 export async function createDevice({
   data,
@@ -165,7 +207,7 @@ export async function createDevice({
           type: data.type,
           status: data.status,
           networkInfo: data.networkInfo,
-          specs: data.specs,
+          specs: normalizeSpecs(data.specs),
           currentAssignment: {
             idEmployee: data.currentAssignment?.idEmployee,
             idBranch: data.currentAssignment?.idBranch,
@@ -309,7 +351,7 @@ export async function updateDevice({
           type: data.type,
           status: data.status,
           ...(data.networkInfo?.length > 0 && { networkInfo: data.networkInfo }),
-          specs: data.specs,
+          specs: normalizeSpecs(data.specs),
           notes: data.notes ?? "",
           ...(data.currentAssignment?.idEmployee != null && {
             currentAssignment: data.currentAssignment,

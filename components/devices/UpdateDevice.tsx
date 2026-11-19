@@ -51,6 +51,8 @@ function getDefaultValues(device?: IDevices | null): IDevices {
             user: device?.specs?.user || null,
             userPassword: device?.specs?.userPassword || null,
             currentStatus: device?.specs?.currentStatus || null,
+            imei: device?.specs?.imei ?? "",
+            value: device?.specs?.value ?? null,
         },
         createdAt: formatDateMx(device?.createdAt) || "",
         updatedAt: formatDateMx(device?.updatedAt) || "",
@@ -308,6 +310,36 @@ export default function FormUpdateDevice({
                                     invalid={!!errors.type}
                                     feedBack={errors.type?.message}
                                     className="text-uppercase border"
+                                />
+                            </Col>
+
+                            <ConditionalRender cond={["celular", "tablet"].includes(String(selectedType))}>
+                                <Col md={6}>
+                                    <Entry
+                                        register={register("specs.imei")}
+                                        label="IMEI:"
+                                        className="text-uppercase border"
+                                    />
+                                </Col>
+                            </ConditionalRender>
+
+                            <Col md={6}>
+                                <Entry
+                                    register={register("specs.value", {
+                                        // Vacío = null; si no, número (sale en la carta responsiva)
+                                        setValueAs: (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+                                        validate: {
+                                            isNumber: (v) => v == null || !Number.isNaN(v) || "El valor del equipo debe ser un número",
+                                            notNegative: (v) => v == null || Number.isNaN(v) || v >= 0 || "El valor del equipo no puede ser negativo",
+                                        },
+                                    })}
+                                    label="Valor del equipo (MXN):"
+                                    type="number"
+                                    min="0"
+                                    prefix="$"
+                                    invalid={!!errors.specs?.value}
+                                    feedBack={errors.specs?.value?.message}
+                                    className="border"
                                 />
                             </Col>
 
@@ -773,6 +805,9 @@ export default function FormUpdateDevice({
                                     as={"textarea"}
                                     rows={3}
                                 />
+                                <Form.Text className="text-muted">
+                                    Accesorios (ej. cargador, lápiz táctil). En la carta responsiva sale como &quot;Accesorios&quot;.
+                                </Form.Text>
                             </Col>
                         </Row>
                     </Card.Body>

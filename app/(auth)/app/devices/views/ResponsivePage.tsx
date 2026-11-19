@@ -1,9 +1,13 @@
-import { ListOneDevice } from "@/app/actions/devices-actions";
+import { getWaiverContent, ListOneDevice } from "@/app/actions/devices-actions";
 import DevicesOneError from "@/components/devices/DevicesOneError";
 import ResposiveDoc from "@/components/devices/ResposiveDoc";
 
 export default async function ResponsivePage({ id }: { id: string }) {
-    const res = await ListOneDevice({ id: Number(id) });
+    // El texto de la carta lo arma el back; se pide junto con el dispositivo
+    const [res, waiverRes] = await Promise.all([
+        ListOneDevice({ id: Number(id) }),
+        getWaiverContent({ idDevice: Number(id) }),
+    ]);
 
     if (!res) {
         return (
@@ -11,5 +15,12 @@ export default async function ResponsivePage({ id }: { id: string }) {
         );
     }
 
-    return <ResposiveDoc device={res} idDevice={res.id} />;
+    return (
+        <ResposiveDoc
+            device={res}
+            idDevice={res.id}
+            waiver={waiverRes.data ?? null}
+            waiverError={waiverRes.success ? "" : waiverRes.message}
+        />
+    );
 }

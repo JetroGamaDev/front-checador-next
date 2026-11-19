@@ -48,6 +48,9 @@ export interface IDevices {
         user: string | null;
         userPassword: string | null;
         currentStatus: string | null;
+        // Opcionales: salen en la carta responsiva (IMEI de celular/tablet y valor en MXN)
+        imei?: string | null;
+        value?: number | null;
     }
 
     currentAssignment?: {
@@ -153,6 +156,21 @@ export interface IDevices {
 
     idIt?: number | null;
     notes?: string;
+}
+
+// Contenido de la carta responsiva que arma el back (GET /devices-waiverContent/:id)
+export interface IWaiverContent {
+    title: string;
+    placeAndDate: string;
+    employeeName?: string | null;
+    employeePosition?: string | null;
+    itName?: string | null;
+    itPosition?: string | null;
+    companyName?: string | null;
+    intro: string;
+    rows: { label: string; value: string | null }[];
+    clauses: { title: string; text: string }[];
+    hasPhoneLine?: boolean;
 }
 
 export interface IAssignDevice {

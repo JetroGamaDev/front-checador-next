@@ -59,6 +59,8 @@ const DEFAULT_VALUES: Partial<IDevices> = {
         user: null,
         userPassword: null,
         currentStatus: null,
+        imei: null,
+        value: null,
     },
     currentAssignment: {
         id: null,
@@ -178,6 +180,7 @@ export default function CreateDeviceComponent({
                     passwordAdmin: null,
                     user: null,
                     userPassword: null,
+                    imei: null,
                 },
                 currentAssignment: {
                     ...current.currentAssignment,
@@ -449,6 +452,36 @@ export default function CreateDeviceComponent({
                                                             invalid={!!errors.specs?.serialNumber}
                                                             feedBack={errors.specs?.serialNumber?.message}
                                                             className="text-uppercase border"
+                                                        />
+                                                    </Col>
+
+                                                    <ConditionalRender cond={["celular", "tablet"].includes(String(selectedType))}>
+                                                        <Col md={6}>
+                                                            <Entry
+                                                                register={register("specs.imei")}
+                                                                label="IMEI:"
+                                                                className="text-uppercase border"
+                                                            />
+                                                        </Col>
+                                                    </ConditionalRender>
+
+                                                    <Col md={6}>
+                                                        <Entry
+                                                            register={register("specs.value", {
+                                                                // Vacío = null; si no, número (sale en la carta responsiva)
+                                                                setValueAs: (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+                                                                validate: {
+                                                                    isNumber: (v) => v == null || !Number.isNaN(v) || "El valor del equipo debe ser un número",
+                                                                    notNegative: (v) => v == null || Number.isNaN(v) || v >= 0 || "El valor del equipo no puede ser negativo",
+                                                                },
+                                                            })}
+                                                            label="Valor del equipo (MXN):"
+                                                            type="number"
+                                                            min="0"
+                                                            prefix="$"
+                                                            invalid={!!errors.specs?.value}
+                                                            feedBack={errors.specs?.value?.message}
+                                                            className="border"
                                                         />
                                                     </Col>
 
@@ -1179,6 +1212,9 @@ export default function CreateDeviceComponent({
                                                             as={"textarea"}
                                                             rows={3}
                                                         />
+                                                        <Form.Text className="text-muted">
+                                                            Accesorios (ej. cargador, lápiz táctil). En la carta responsiva sale como &quot;Accesorios&quot;.
+                                                        </Form.Text>
                                                     </Col>
                                                 </Row>
                                             </Card.Body>
