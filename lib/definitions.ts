@@ -314,7 +314,17 @@ export interface INewsletter {
   hourInitiPublish: string;
   createAt?: string;
   updateAt?: string;
+  // Checadores (tablets) donde se muestra; vacío en anuncios anteriores al cambio = todos
+  checadores?: Pick<INoticeChecador, "id" | "name" | "lastName">[];
 };
+
+// Opción de GET /notice/checadores (usuarios con rol CHECADOR activos)
+export interface INoticeChecador {
+  id: number;
+  name: string;
+  lastName: string;
+  branch: { id: number; name: string } | null;
+}
 
 
 

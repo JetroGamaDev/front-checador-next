@@ -1,6 +1,6 @@
 "use server";
 
-import { ActionResponse, INewsletter } from "@/lib/definitions";
+import { ActionResponse, INewsletter, INoticeChecador } from "@/lib/definitions";
 import { storeAction } from "./storeActions";
 import axios from "axios";
 import { storeToken } from "@/lib/useToken";
@@ -163,6 +163,24 @@ export async function getActiveNotice(): Promise<INewsletter | null> {
   }
 }
 
+// Checadores que se pueden elegir al crear un anuncio
+export async function fetchNoticeChecadores(): Promise<ActionResponse<INoticeChecador[]>> {
+  try {
+    const { apiToken, API_URL } = await storeAction();
+    const { data } = await axios.get(`${API_URL}/notice/checadores`, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    });
+    return { success: true, message: data?.message ?? "OK", data: Array.isArray(data?.data) ? data.data : [] };
+  } catch (error: unknown) {
+    console.log(error);
+    let message = "No se pudieron cargar los checadores";
+    if (axios.isAxiosError(error)) message = error.response?.data?.message || message;
+    return { success: false, message, data: [] };
+  }
+}
+
+const NO_CHECADORES_MESSAGE = "Selecciona al menos un checador para el aviso.";
+
 export async function createNewsletter({
   data,
 }: {
@@ -174,10 +192,16 @@ export async function createNewsletter({
     hourInitiPublish: string;
     dateEndPublish: string;
     hourEndPublish: string;
+    idUsers: number[];
   };
-}): Promise<ActionResponse<INewsletter | null>> {
+}): Promise<ActionResponse<INewsletter | null> & { invalidIdUsers?: number[] }> {
   try {
     const { apiToken, apiUrl } = await storeToken();
+
+    const idUsers = (data.idUsers ?? []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (idUsers.length === 0) {
+      return { success: false, message: NO_CHECADORES_MESSAGE };
+    }
 
     const response = await axios.post(`${apiUrl}/notice`,
         {
@@ -187,6 +211,7 @@ export async function createNewsletter({
           hourInitiPublish: data.hourInitiPublish,
           dateEndPublish: data.dateEndPublish,
           hourEndPublish: data.hourEndPublish,
+          idUsers,
         },
         {
           headers: {
@@ -212,9 +237,13 @@ export async function createNewsletter({
         return res.data;
       }).catch((err) => {
       console.log("ERROR DE CATCH:", err?.response?.data || err);
-      throw new Error(
+      // Checadores que ya no existen o no están activos: el back regresa sus ids en data.idUsers
+      const invalid = err?.response?.data?.data?.idUsers;
+      const error = new Error(
         err?.response?.data?.message || "Error en la respuesta"
-      );
+      ) as Error & { invalidIdUsers?: number[] };
+      if (Array.isArray(invalid)) error.invalidIdUsers = invalid.map(Number);
+      throw error;
     });
 
     revalidatePath("/app/newsletter");
@@ -231,6 +260,7 @@ export async function createNewsletter({
     return {
       success: false,
       message: error.message,
+      invalidIdUsers: error.invalidIdUsers,
     };
   }
 }

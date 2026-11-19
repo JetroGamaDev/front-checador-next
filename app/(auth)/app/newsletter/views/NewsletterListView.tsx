@@ -12,7 +12,7 @@ import { INewsletter } from "@/lib/definitions";
 import { formatCreatedAt, formatCreatedAtOnlyHours } from "@/lib/helpers";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Card, Col, Container, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -100,6 +100,32 @@ function NewsletterListView({ newsletters }: { newsletters: INewsletter[] }) {
             : null}
         </div>
       ),
+    },
+    {
+      key: "checadores",
+      label: "Checadores",
+      accessor: (row) => (row.checadores ?? []).map((c) => `${c.name} ${c.lastName}`).join(", "),
+      render: (row) => {
+        const names = (row.checadores ?? []).map((c) => `${c.name} ${c.lastName}`.trim());
+        // Anuncios anteriores al cambio no traen checadores: se muestran en todos
+        if (names.length === 0) return <span className="text-muted text-uppercase">Todos</span>;
+        if (names.length <= 2) return <div className="text-uppercase">{names.join(", ")}</div>;
+
+        const rest = names.slice(2);
+        return (
+          <div className="text-uppercase">
+            {names.slice(0, 2).join(", ")}{" "}
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip id={`notice-checadores-${row.id}`} className="text-uppercase">{rest.join(", ")}</Tooltip>}
+            >
+              <span className="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" role="button">
+                +{rest.length}
+              </span>
+            </OverlayTrigger>
+          </div>
+        );
+      },
     },
   ];
 
