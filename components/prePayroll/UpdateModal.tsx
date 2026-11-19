@@ -23,8 +23,11 @@ type FeedbackState = "loading" | "success" | "error" | null;
 export default function UpdateModal({
     prenom,
     onHide,
+    closed = false,
 }: ModalBasicProps & {
     prenom: IUpdatePrepayroll[];
+    // Prenómina cerrada: la fecha nómina solo se cambia para pasar la incidencia a la siguiente prenómina abierta
+    closed?: boolean;
 }) {
     const {
         handleSubmit,
@@ -242,6 +245,12 @@ export default function UpdateModal({
                                         <i className="bi bi-info-circle me-1" />
                                         Registro original: {originalDate ? formatCreatedAt(originalDate) : "Sin registro de fecha"}
                                     </div>
+                                    <ConditionalRender cond={closed}>
+                                        <div className="small text-info-emphasis bg-info-subtle border border-info-subtle rounded-3 px-3 py-2">
+                                            <i className="bi bi-arrow-right-circle me-1" />
+                                            Para pasar una incidencia a la siguiente prenómina, ponle una fecha nómina de ese periodo
+                                        </div>
+                                    </ConditionalRender>
                                 </Form.Group>
                             </Col>
                         </Card.Body>

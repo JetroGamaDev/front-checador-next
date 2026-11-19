@@ -16,6 +16,10 @@ export interface IPrePayroll {
     complete?: boolean;
     // VACACIONES que el líder aún no autoriza: no se puede asignar fecha nómina ni cuentan en los Excel
     pendingApproval?: boolean;
+    // Incidencia con fecha de un periodo ya cerrado que se paga en este (su fechaIncidencia es la original)
+    extemporanea?: boolean;
+    idPeriodOrigen?: number | null;
+    numberPeriodOrigen?: number | null;
 }
 
 interface Idata {

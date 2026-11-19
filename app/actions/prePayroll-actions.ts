@@ -123,7 +123,7 @@ export async function updatePrepayroll({
 
         const { apiToken, API_URL } = await storeAction();
 
-        await axios.put(
+        const res = await axios.put(
             `${API_URL}/prePayroll`,
             {
                 idPeriod: data.idPeriod,
@@ -141,7 +141,7 @@ export async function updatePrepayroll({
 
         return {
             success: true,
-            message: "Actualizado con éxito",
+            message: res.data?.message || "Actualizado con éxito",
             data: true,
         };
     } catch (error: unknown) {

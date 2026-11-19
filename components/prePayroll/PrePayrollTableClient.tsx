@@ -401,7 +401,8 @@ export default function PrePayrollTableClient({
         modalConfirm("¿Seguro que deseas validar?", async () => {
             try {
                 setFeedback("loading")
-                setFeedbackMsg("Completando validación...")
+                // Tarda un poco más: el back sincroniza la prenómina antes de cerrarla
+                setFeedbackMsg("Sincronizando y cerrando la prenómina...")
 
                 const res = await completePrepayroll(
                     {
@@ -578,6 +579,11 @@ export default function PrePayrollTableClient({
                                 PENDIENTE DE AUTORIZAR
                             </span>
                         </ConditionalRender>
+                        <ConditionalRender cond={row.extemporanea === true}>
+                            <span className="badge rounded-pill px-3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle">
+                                EXTEMPORÁNEA{row.numberPeriodOrigen != null ? ` · PERIODO ${row.numberPeriodOrigen}` : ""}
+                            </span>
+                        </ConditionalRender>
                     </div>
                 )
             },
@@ -686,7 +692,7 @@ export default function PrePayrollTableClient({
                         variant="success"
                         className="d-inline-flex align-items-center gap-2 fw-semibold px-3"
                         onClick={handleComplete}
-                        disabled={!datesComplete}
+                        disabled={!datesComplete || feedback === "loading"}
                     >
                         <i className="bi bi-check2-circle" />
                         Validar
@@ -931,7 +937,7 @@ export default function PrePayrollTableClient({
                                                             <td className="align-middle">
                                                                 <div className="d-flex justify-content-center align-items-center gap-2">
 
-                                                                    <ConditionalRender cond={prepayrollextra?.complete === false}>
+                                                                    <ConditionalRender cond={prepayrollextra?.complete === false || prepayrollextra?.complete === true}>
                                                                         <ConditionalRender cond={row.pendingApproval !== true}>
                                                                             <Button
                                                                                 variant="outline-info"
@@ -1043,6 +1049,7 @@ export default function PrePayrollTableClient({
                                 clearSelectedIds();
                             }}
                             prenom={selectedRow ? [selectedRow] : []}
+                            closed={prepayrollextra?.complete === true}
                         />
                     </ModalBlur>
                 </ConditionalRender>
