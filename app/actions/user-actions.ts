@@ -16,6 +16,17 @@ import { isNonEmptyImagePayload } from "@/lib/isNonEmptyImagePayload";
 import { createUserImage } from "./image-field-actions";
 import { ApiError } from "next/dist/server/api-utils";
 
+// El back exige idEmployee como número o null. El valor puede llegar como texto ("12"),
+// vacío ("") o como objeto { id } según de dónde se llenó el formulario: se normaliza aquí.
+function normalizeIdEmployee(value: unknown): number | null {
+  if (value && typeof value === "object" && "id" in value) {
+    value = (value as { id: unknown }).id;
+  }
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 export type UsersPagedResult = {
   data: User[];
   total: number;
@@ -358,7 +369,7 @@ export async function createUser({
       status,
       phone: sanitizedPhone,
       password,
-      idEmployee,
+      idEmployee: normalizeIdEmployee(idEmployee),
     };
 
     const headers = {
@@ -441,7 +452,7 @@ export async function updateUser({
       permissions,
       status: Number(status),
       phone: sanitizedPhone,
-      idEmployee,
+      idEmployee: normalizeIdEmployee(idEmployee),
     };
 
     const headers = {

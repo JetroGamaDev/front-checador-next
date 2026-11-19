@@ -15,6 +15,8 @@ type FieldMany2oneProps = {
   className?: string;
   invalid?: boolean;
   feedBack?: React.ReactNode;
+  // Texto del input vacío (por ejemplo "Sin empleado")
+  placeholder?: string;
 };
 
 export function RelationField({
@@ -27,6 +29,7 @@ export function RelationField({
   className,
   feedBack,
   invalid,
+  placeholder,
 }: FieldMany2oneProps) {
   return (
     <Form.Group className="mb-2">
@@ -35,6 +38,7 @@ export function RelationField({
         <Many2one
           disabled={readonly}
           options={options}
+          label={placeholder}
           {...register}
           control={control}
           callBackMode={callBackMode}

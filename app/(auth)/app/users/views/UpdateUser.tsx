@@ -113,7 +113,8 @@ export default function FormUpdateUser({
         phone: user?.phone?.internationalNumber ?? null,
         status: user?.status ?? 1,
         imageUrl: null,
-        idEmployee: user?.idEmployee ?? null,
+        // 0 o vacío significa "sin empleado"
+        idEmployee: Number(user?.idEmployee) > 0 ? Number(user?.idEmployee) : null,
       });
     } catch {
       modalError("No se pudo cargar la información del usuario");
@@ -336,6 +337,7 @@ export default function FormUpdateUser({
                       control={control}
                       callBackMode="id"
                       label="Empleado relacionado:"
+                      placeholder="Sin empleado"
                     />
                   </Col>
                 </Row>
