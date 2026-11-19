@@ -17,6 +17,8 @@ type FieldEntryProps = {
   as?: React.ElementType;
   min?: string;
   max?: string;
+  // Paso de los input number (por ejemplo "0.01" para montos con centavos)
+  step?: string;
   cols?: number;
   rows?: number;
   prefix?: React.ReactNode;
@@ -37,6 +39,7 @@ export const Entry = ({
   as,
   min,
   max,
+  step,
   cols,
   rows,
   prefix,
@@ -74,6 +77,7 @@ export const Entry = ({
           rows={rows}
           min={min}
           max={max}
+          step={step}
         />
 
         {suffix && (

@@ -336,6 +336,7 @@ export default function FormUpdateDevice({
                                     label="Valor del equipo (MXN):"
                                     type="number"
                                     min="0"
+                                    step="0.01"
                                     prefix="$"
                                     invalid={!!errors.specs?.value}
                                     feedBack={errors.specs?.value?.message}
