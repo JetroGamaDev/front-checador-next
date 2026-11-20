@@ -10,6 +10,8 @@ import ListView from "../templates/ListView";
 import { useSearchParams, useRouter } from "next/navigation";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
+import { useSession } from "next-auth/react";
+import { isOwnIncidenceDeleteLocked } from "@/lib/employeeVisibility";
 import AlertSignatures from "./AlertSignatures";
 import { formatCreatedAt, formatParseHours } from "@/lib/helpers";
 import ModalBlur from "../ModalBlur";
@@ -40,6 +42,8 @@ export default function OverTimeTableClient({
     //Aqui van los const 
 
     const session = useSessionSnapshot();
+    // Sesión real (con isDoh) para la regla de eliminar incidencias propias
+    const { data: authSession } = useSession();
     const isClearingSelectionRef = useRef(false);
     const [, setSelectedIds] = useState<Array<string | number>>([]);
     const sp = useSearchParams();
@@ -629,12 +633,18 @@ export default function OverTimeTableClient({
                                                                         Ver
                                                                     </a>
 
-                                                                    <a
-                                                                        className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
-                                                                        onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
-                                                                    >
-                                                                        {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
-                                                                    </a>
+                                                                    <ConditionalRender cond={!isOwnIncidenceDeleteLocked(authSession?.user, row)}>
+                                                                        <a
+                                                                            className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
+                                                                            onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
+                                                                        >
+                                                                            {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
+                                                                        </a>
+                                                                    </ConditionalRender>
+                                                                    {/* Aprobada y propia: ya no la elimina el empleado */}
+                                                                    <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, row) && row.leaderApproval === "APPROVED"}>
+                                                                        <span className="small text-muted">Para cancelarla acude a DOH</span>
+                                                                    </ConditionalRender>
                                                                 </div>
                                                             </td>
                                                         </tr>

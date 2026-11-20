@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
+import { useSession } from "next-auth/react";
+import { isOwnIncidenceDeleteLocked } from "@/lib/employeeVisibility";
 import { FormBook, FormPage } from "../templates/FormView";
 import SignaturesView from "@/app/(auth)/app/permissions/views/SignaturesView";
 import ApproveLeaderModal from "@/app/(auth)/app/permissions/views/ApproveLeaderModal";
@@ -63,6 +65,8 @@ export default function ShowInfoPermissionRequest({
   id: string;
 }) {
   const session = useSessionSnapshot();
+  // Sesión real (con isDoh) para la regla de eliminar incidencias propias
+  const { data: authSession } = useSession();
   const roles = session?.uid?.roles;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -188,20 +192,26 @@ export default function ShowInfoPermissionRequest({
               </Button>
             </OverLay>
 
-            <OverLay string="Eliminar registro">
-              <Button
-                className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="danger"
-                onClick={() => setShowDeletePermissionModal(true)}
-                disabled={loading}
-              >
-                <i className="bi bi-trash" />
-
-                <span className="d-none d-md-inline ms-2">
-                  Eliminar permiso
-                </span>
-              </Button>
-            </OverLay>
+            <ConditionalRender cond={!isOwnIncidenceDeleteLocked(authSession?.user, permission)}>
+                <OverLay string="Eliminar registro">
+                  <Button
+                    className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
+                    variant="danger"
+                    onClick={() => setShowDeletePermissionModal(true)}
+                    disabled={loading}
+                  >
+                    <i className="bi bi-trash" />
+    
+                    <span className="d-none d-md-inline ms-2">
+                      Eliminar permiso
+                    </span>
+                  </Button>
+                </OverLay>
+            </ConditionalRender>
+            {/* Aprobada y propia: ya no la elimina el empleado */}
+            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, permission) && permission?.leaderApproval === "APPROVED"}>
+                <span className="small text-muted align-self-center">Para cancelarla acude a DOH</span>
+            </ConditionalRender>
 
             <ConditionalRender cond={showEmployeeSign}>
               <OverLay string="Firmar">

@@ -18,6 +18,8 @@ import SignatureVacationDohModal from "@/components/vacations/SignatureDohModal"
 import VacationPDFownload from "@/components/vacations/VacationPDFownload";
 
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
+import { useSession } from "next-auth/react";
+import { isOwnIncidenceDeleteLocked } from "@/lib/employeeVisibility";
 import { fetchPeriods } from "@/app/actions/vacations-actions";
 import ConditionalRender from "../ConditionalRender";
 import OverLay from "../templates/OverLay";
@@ -91,6 +93,8 @@ export default function ShowInfoVacation({
 }) {
   const router = useRouter();
   const session = useSessionSnapshot();
+  // Sesión real (con isDoh) para la regla de eliminar incidencias propias
+  const { data: authSession } = useSession();
   const roles = session?.uid?.roles;
   const [loading, setLoading] = useState(false);
   const [, setMessageLoading] = useState("");
@@ -266,20 +270,26 @@ export default function ShowInfoVacation({
             </OverLay>
 
             {/* <ConditionalRender cond={showAnyActions}> */}
-            <OverLay string="Eliminar registro">
-              <Button
-                className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="danger"
-                onClick={() => setShowDeleteModal(true)}
-                disabled={loading}
-              >
-                <i className="bi bi-trash" />
-
-                <span className="d-none d-md-inline ms-2">
-                  Eliminar solicitud
-                </span>
-              </Button>
-            </OverLay>
+            <ConditionalRender cond={!isOwnIncidenceDeleteLocked(authSession?.user, vacation)}>
+                <OverLay string="Eliminar registro">
+                  <Button
+                    className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
+                    variant="danger"
+                    onClick={() => setShowDeleteModal(true)}
+                    disabled={loading}
+                  >
+                    <i className="bi bi-trash" />
+    
+                    <span className="d-none d-md-inline ms-2">
+                      Eliminar solicitud
+                    </span>
+                  </Button>
+                </OverLay>
+            </ConditionalRender>
+            {/* Aprobada y propia: ya no la elimina el empleado */}
+            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, vacation) && vacation?.leaderApproval === "APPROVED"}>
+                <span className="small text-muted align-self-center">Para cancelarla acude a DOH</span>
+            </ConditionalRender>
             {/* </ConditionalRender> */}
 
             <ConditionalRender cond={showEmployeeSign}>

@@ -28,6 +28,30 @@ export function isCancelled(row: MaybeCancelled) {
   return row.delete?.delete === true;
 }
 
+type OwnIncidence = MaybeCancelled & {
+  idEmployee?: number | null;
+  employee?: { id?: number | null } | null;
+  leaderApproval?: string | null;
+};
+
+// Empleado (sesión de empleado, sin DOH) sobre SUS PROPIAS vacaciones, permisos u horas extra:
+// solo puede eliminar las pendientes; las aprobadas o rechazadas se quedan (las cancela DOH).
+// Recibe el usuario real de useSession(), no el de useSessionSnapshot (ese apaga isDoh/isApproverDoh).
+// Líderes viendo a su equipo, DOH y usuarios del sistema no se bloquean. El back valida siempre.
+export function isOwnIncidenceDeleteLocked(user: Session["user"] | null | undefined, row: OwnIncidence | null | undefined) {
+  if (!user || !row || isCancelled(row)) return false;
+  if (!isEmployeeSession(user)) return false;
+
+  const roles = user.roles as { isDoh?: boolean; isApproverDoh?: boolean } | undefined;
+  if (roles?.isDoh || roles?.isApproverDoh) return false;
+
+  const ownerId = Number(row.idEmployee ?? row.employee?.id);
+  if (!user.idEmployee || !ownerId || ownerId !== Number(user.idEmployee)) return false;
+
+  // Sin el dato no se oculta: el back responde 403 si no procede
+  return row.leaderApproval === "APPROVED" || row.leaderApproval === "REFUSED";
+}
+
 // La API pagina y cuenta incluyendo los registros cancelados. Para quitarlos sin romper el total ni
 // las páginas, se piden todas las páginas, se filtran los cancelados y se pagina aquí.
 // Solo se usa para el usuario que es únicamente empleado (ve solo sus propios registros).

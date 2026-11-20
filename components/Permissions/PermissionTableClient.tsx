@@ -11,6 +11,8 @@ import Loading from "@/components/LoadingSpinner";
 import AlertSignaturesP from "./AlertSignatures";
 import { ISignatures } from "@/lib/overTime/interface";
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
+import { useSession } from "next-auth/react";
+import { isOwnIncidenceDeleteLocked } from "@/lib/employeeVisibility";
 import { formatDateMx } from "@/lib/helpers";
 import { IPermissionRequest } from "@/lib/permissions/interface";
 import ModalBlur from "../ModalBlur";
@@ -48,6 +50,8 @@ export default function PermissionsTableClient({
   dateEnd?: string;
 }) {
   const session = useSessionSnapshot();
+  // Sesión real (con isDoh) para la regla de eliminar incidencias propias
+  const { data: authSession } = useSession();
   const router = useRouter();
   const sp = useSearchParams();
   const searchParamsString = sp.toString();
@@ -590,12 +594,18 @@ export default function PermissionsTableClient({
                                     Ver
                                   </a>
 
-                                  <a
-                                    className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
-                                    onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
-                                  >
-                                    {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
-                                  </a>
+                                  <ConditionalRender cond={!isOwnIncidenceDeleteLocked(authSession?.user, row)}>
+                                      <a
+                                        className={row.delete?.delete === true ? "btn btn-sm btn-outline-danger" : "btn btn-sm btn-danger"}
+                                        onClick={() => handleDelete(row.id, row.delete?.reaseonDelete ?? "", row.delete?.delete ?? false)}
+                                      >
+                                        {row.delete?.delete === true ? "Ver motivo" : "Eliminar"}
+                                      </a>
+                                  </ConditionalRender>
+                                  {/* Aprobada y propia: ya no la elimina el empleado */}
+                                  <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, row) && row.leaderApproval === "APPROVED"}>
+                                      <span className="small text-muted">Para cancelarla acude a DOH</span>
+                                  </ConditionalRender>
                                 </div>
                               </td>
                             </tr>
