@@ -409,7 +409,7 @@ export default function ChecadoresClient({
                                             <td>
                                                 <div className="d-flex align-items-center gap-2">
                                                     <ConditionalRender cond={(row.employees?.length ?? 0) > 0}>
-                                                        <OverLay string={(row.employees ?? []).map((e) => `${e.lastName ?? ""} ${e.name ?? ""}`.trim()).join(", ").toUpperCase()}>
+                                                        <OverLay placement="top" string={(row.employees ?? []).map((e) => `${e.lastName ?? ""} ${e.name ?? ""}`.trim()).join(", ").toUpperCase()}>
                                                             <span className="badge rounded-pill px-3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle text-nowrap">
                                                                 {row.employees?.length} empleado{row.employees?.length !== 1 ? "s" : ""}
                                                             </span>
@@ -419,7 +419,7 @@ export default function ChecadoresClient({
                                                         <span className="text-muted">—</span>
                                                     </ConditionalRender>
                                                     <ConditionalRender cond={canUpdate}>
-                                                        <OverLay string="Asignar empleados para el modo checador">
+                                                        <OverLay placement="top" string="Asignar empleados para el modo checador">
                                                             <Button
                                                                 size="sm"
                                                                 variant="outline-primary"
