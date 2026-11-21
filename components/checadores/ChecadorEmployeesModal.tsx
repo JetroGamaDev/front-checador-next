@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Button, Card, Form, InputGroup } from "react-bootstrap";
+import { Button, Container, Form, InputGroup } from "react-bootstrap";
 import { fetchEmployees } from "@/app/actions/employee-actions";
 import { updateChecadorEmployees } from "@/app/actions/checadores-actions";
 import { IChecador, IChecadorEmployee } from "@/lib/checadores/interface";
@@ -95,21 +95,20 @@ export default function ChecadorEmployeesModal({
     return (
         <>
             <ModalBlur onClose={onHide} locked={feedback === "loading"}>
-                <Card className="border rounded-4 shadow" style={{ width: "min(640px, calc(100vw - 32px))" }}>
-                    <Card.Body className="p-3 p-md-4">
-                        <div className="d-flex align-items-start justify-content-between gap-2 mb-2">
-                            <div style={{ minWidth: 0 }}>
-                                <h5 className="mb-1 fw-bold">Empleados del checador</h5>
-                                <div className="text-muted small text-uppercase text-break">{checadorName || "—"}</div>
-                            </div>
-                            <span className="badge rounded-pill px-3 py-2 fw-semibold bg-primary-subtle text-primary-emphasis border border-primary-subtle flex-shrink-0">
+                {/* ModalBlur ya da la caja y el botón de cerrar: aquí solo va el contenido */}
+                <Container className="mt-4">
+                    <div className="p-2">
+                        <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-3">
+                            <h4 className="mb-0 fw-bold">Empleados del checador</h4>
+                            <span className="badge rounded-pill px-3 py-2 fw-semibold bg-primary-subtle text-primary-emphasis border border-primary-subtle">
                                 {selected.length} seleccionado{selected.length !== 1 ? "s" : ""}
                             </span>
                         </div>
 
-                        <p className="text-muted small mb-3">
-                            Estos empleados podrán checar con este checador desde su perfil (modo checador).
-                        </p>
+                        <div className="text-muted mb-3">
+                            <span className="fw-semibold text-uppercase text-body">{checadorName || "—"}</span>
+                            {" · "}Estos empleados podrán checar con este checador desde su perfil (modo checador).
+                        </div>
 
                         {/* Seleccionados */}
                         <div className="d-flex flex-wrap gap-2 mb-3">
@@ -139,7 +138,7 @@ export default function ChecadorEmployeesModal({
 
                         {/* Buscador */}
                         <InputGroup className="mb-2">
-                            <InputGroup.Text>
+                            <InputGroup.Text className="bg-body-tertiary text-body-secondary">
                                 <i className="bi bi-search" />
                             </InputGroup.Text>
                             <GenericSearchInput onSearch={handleSearch} placeholder="Buscar empleado activo por nombre o número" />
@@ -180,8 +179,8 @@ export default function ChecadorEmployeesModal({
                                 <span className="d-none d-md-inline ms-2">Guardar</span>
                             </Button>
                         </div>
-                    </Card.Body>
-                </Card>
+                    </div>
+                </Container>
             </ModalBlur>
 
             {/* Overlays después del ModalBlur para que queden encima */}
