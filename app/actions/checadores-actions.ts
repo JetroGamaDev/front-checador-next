@@ -1,6 +1,6 @@
 "use server"
 
-import { CheckMethods, IChecador, IChecadoresQuery } from "@/lib/checadores/interface";
+import { CheckMethods, IChecador, IChecadorEmployee, IChecadoresQuery, IMyChecker } from "@/lib/checadores/interface";
 import { storeAction } from "./storeActions";
 import axios from "axios";
 
@@ -88,5 +88,64 @@ export async function updateCheckMethods(id: number, checkMethods: CheckMethods)
     } catch (error: unknown) {
         console.log(error);
         return { success: false, message: getErrorMessage(error) };
+    }
+}
+
+//Asignar los empleados que pueden usar este checador desde su perfil (reemplaza la lista; [] = nadie)
+export async function updateChecadorEmployees(id: number, idEmployees: number[]): Promise<{
+    success: boolean;
+    message: string;
+    data?: { id: number; idEmployees: number[]; employees: IChecadorEmployee[] };
+    invalid?: number[];
+}> {
+    try {
+        const { apiToken, API_URL } = await storeAction();
+
+        const cleanIds = Array.from(new Set(idEmployees.map(Number).filter((n) => Number.isInteger(n) && n > 0)));
+
+        const response = await axios
+            .put(`${API_URL}/checadores/${id}/employees`, { idEmployees: cleanIds }, {
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                },
+                timeout: 15000,
+            })
+            .then((res) => res.data);
+
+        return {
+            success: true,
+            message: response?.message ?? "Empleados actualizados",
+            data: response?.data,
+        };
+    } catch (error: unknown) {
+        console.log(error);
+        const invalid = axios.isAxiosError(error) ? error.response?.data?.data?.invalid : undefined;
+        return {
+            success: false,
+            message: getErrorMessage(error),
+            invalid: Array.isArray(invalid) ? invalid.map(Number) : undefined,
+        };
+    }
+}
+
+//Checadores asignados al empleado con sesión (modo checador del perfil). Vacío = sin modo checador
+export async function getMyCheckers(): Promise<{ success: boolean; message: string; data: IMyChecker[] }> {
+    try {
+        const { apiToken, API_URL } = await storeAction();
+
+        const response = await axios
+            .get(`${API_URL}/checadores/mine`, {
+                headers: {
+                    Authorization: `Bearer ${apiToken}`,
+                },
+                timeout: 15000,
+            })
+            .then((res) => res.data);
+
+        const data: IMyChecker[] = Array.isArray(response?.data) ? response.data : [];
+        return { success: true, message: response?.message ?? "OK", data };
+    } catch (error: unknown) {
+        console.log(error);
+        return { success: false, message: getErrorMessage(error), data: [] };
     }
 }

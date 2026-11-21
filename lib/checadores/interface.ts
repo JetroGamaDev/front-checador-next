@@ -18,6 +18,24 @@ export interface IChecador {
     branch: { id: number; name: string } | null;
     checkMethods: CheckMethods;
     checkMethodsUpdatedAt: string | null;
+    // Empleados que pueden usar este checador desde su perfil (modo checador)
+    employees?: IChecadorEmployee[];
+}
+
+export interface IChecadorEmployee {
+    id: number;
+    idCheck: number | null;
+    name: string;
+    lastName: string;
+}
+
+// Checador asignado al empleado con sesión (GET /checadores/mine)
+export interface IMyChecker {
+    id: number;
+    name: string;
+    lastName: string;
+    branch: { id: number; name: string } | null;
+    checkMethods: CheckMethods;
 }
 
 export interface IChecadoresQuery {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -17,12 +17,43 @@ import ProfileError from "./profileMessageError";
 import TwoFactorCard from "./TwoFactorCard";
 import TutorialsCard from "./TutorialsCard";
 import PasswordSystemModal from "./PasswordSystemModal";
+import EmployeeCheckerView from "./EmployeeCheckerView";
+import { getMyCheckers } from "@/app/actions/checadores-actions";
+import { IMyChecker } from "@/lib/checadores/interface";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
 type TInputsPhoto = {
   imageUrl: string | File | null;
 };
+
+// El checador elegido se guarda en el navegador para no perder el modo checador al recargar
+function checkerStorageKey(userId?: number | string | null) {
+  return `portal-gama:checker-mode:${userId ?? ""}`;
+}
+
+function readStoredChecker(key: string): number | null {
+  try {
+    const value = Number(window.localStorage.getItem(key));
+    return Number.isInteger(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredChecker(key: string, id: number | null) {
+  try {
+    if (id) window.localStorage.setItem(key, String(id));
+    else window.localStorage.removeItem(key);
+  } catch {
+    // Sin almacenamiento (modo privado): el modo dura solo mientras la página esté abierta
+  }
+}
+
+function checkerLabel(c: IMyChecker) {
+  const name = `${c.name ?? ""} ${c.lastName ?? ""}`.trim() || `Checador ${c.id}`;
+  return `${name} · ${c.branch?.name ?? "Sin sucursal"}`;
+}
 
 function formatText(value?: string | number | null) {
   if (value === null || value === undefined || value === "") return "-";
@@ -51,6 +82,62 @@ export default function EmployeeProfileView({
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   // La primera vez se confirma con el NIP; ya creada, con la contraseña actual
   const [passwordPending, setPasswordPending] = useState(me?.passwordSystemPending === true);
+
+  // Modo checador: checadores asignados (vacío = no se muestra el switch) y el elegido
+  const storageKey = checkerStorageKey(me?.id);
+  const [myCheckers, setMyCheckers] = useState<IMyChecker[]>([]);
+  const [activeCheckerId, setActiveCheckerId] = useState<number | null>(null);
+  const [choosingChecker, setChoosingChecker] = useState(false);
+  const [pendingCheckerId, setPendingCheckerId] = useState("");
+  const activeChecker = myCheckers.find((c) => c.id === activeCheckerId) ?? null;
+
+  const loadCheckers = useCallback(async () => {
+    const res = await getMyCheckers();
+    const list = res.success ? res.data : [];
+    setMyCheckers(list);
+
+    // Si el checador guardado ya no está asignado, se apaga el modo
+    const stored = readStoredChecker(storageKey);
+    const stillAssigned = stored !== null && list.some((c) => c.id === stored);
+    if (!stillAssigned) writeStoredChecker(storageKey, null);
+    setActiveCheckerId(stillAssigned ? stored : null);
+  }, [storageKey]);
+
+  useEffect(() => {
+    loadCheckers();
+  }, [loadCheckers]);
+
+  const activateChecker = (id: number) => {
+    writeStoredChecker(storageKey, id);
+    setActiveCheckerId(id);
+    setChoosingChecker(false);
+    setPendingCheckerId("");
+  };
+
+  const deactivateChecker = () => {
+    writeStoredChecker(storageKey, null);
+    setActiveCheckerId(null);
+    setChoosingChecker(false);
+    setPendingCheckerId("");
+  };
+
+  const handleCheckerSwitch = (checked: boolean) => {
+    if (!checked) {
+      deactivateChecker();
+      return;
+    }
+    // Con uno se entra directo; con varios primero se elige cuál
+    if (myCheckers.length === 1) activateChecker(myCheckers[0].id);
+    else setChoosingChecker(true);
+  };
+
+  // 403 sin autorización o 404 checador inactivo: se apaga el modo, se muestra el motivo y se vuelve a consultar
+  const handleCheckerRevoked = (message: string) => {
+    deactivateChecker();
+    setFeedbackMsg(message);
+    setFeedback("error");
+    loadCheckers();
+  };
 
   useEffect(() => {
     let active = true;
@@ -138,6 +225,17 @@ export default function EmployeeProfileView({
         />
       </ConditionalRender>
 
+      <ConditionalRender cond={!!activeChecker}>
+        <EmployeeCheckerView
+          key={activeChecker?.id}
+          checker={activeChecker as IMyChecker}
+          idCheck={me.idCheck ?? null}
+          onExit={deactivateChecker}
+          onRevoked={handleCheckerRevoked}
+        />
+      </ConditionalRender>
+
+      <ConditionalRender cond={!activeChecker}>
       <Container className="py-3 overflow-x: auto" style={{ maxWidth: "1600px" }}>
 
         <div className="d-flex flex-nowrap gap-2 mb-4">
@@ -255,6 +353,61 @@ export default function EmployeeProfileView({
                 </Card>
               </Col>
 
+              <ConditionalRender cond={myCheckers.length > 0}>
+                <Col xs={12}>
+                  <Card className="border rounded-4">
+                    <Card.Body className="p-4">
+                      <div className="d-flex align-items-center justify-content-between gap-2 mb-3">
+                        <h6 className="mb-0 fw-bold">Modo checador</h6>
+
+                        <span className="badge rounded-pill px-3 py-2 fw-semibold bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                          Apagado
+                        </span>
+                      </div>
+
+                      <p className="text-muted small mb-3">
+                        Usa la vista del checador desde tu teléfono cuando cheques fuera de la empresa.
+                      </p>
+
+                      <Form.Check
+                        type="switch"
+                        id="checker-mode-switch"
+                        label="Modo checador"
+                        checked={choosingChecker}
+                        onChange={(e) => handleCheckerSwitch(e.target.checked)}
+                        className="fw-semibold"
+                      />
+
+                      <ConditionalRender cond={choosingChecker && myCheckers.length > 1}>
+                        <div className="d-flex flex-column flex-md-row gap-2 mt-3">
+                          <Form.Select
+                            aria-label="Elige el checador"
+                            value={pendingCheckerId}
+                            onChange={(e) => setPendingCheckerId(e.target.value)}
+                            className="text-uppercase"
+                          >
+                            <option value="">Elige el checador</option>
+                            {myCheckers.map((c) => (
+                              <option key={c.id} value={c.id}>{checkerLabel(c)}</option>
+                            ))}
+                          </Form.Select>
+
+                          <Button
+                            variant="success"
+                            className="text-nowrap"
+                            disabled={!pendingCheckerId}
+                            onClick={() => activateChecker(Number(pendingCheckerId))}
+                          >
+                            <i className="bi bi-check-lg me-2" />
+                            Usar checador
+                          </Button>
+                        </div>
+                      </ConditionalRender>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </ConditionalRender>
+
               <Col xs={12}>
                 <TwoFactorCard twoFactorEnabled={me.twoFactorEnabled === true} />
               </Col>
@@ -266,6 +419,7 @@ export default function EmployeeProfileView({
           </Card.Body>
         </Card>
       </Container>
+      </ConditionalRender>
 
       {showPasswordModal && (
         <PasswordSystemModal

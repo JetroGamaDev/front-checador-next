@@ -1,7 +1,7 @@
 "use client";
 
 import { Branch } from "@/lib/definitions";
-import { CHECK_METHOD_LABELS, CheckMethods, IChecador } from "@/lib/checadores/interface";
+import { CHECK_METHOD_LABELS, CheckMethods, IChecador, IChecadorEmployee } from "@/lib/checadores/interface";
 import { updateCheckMethods } from "@/app/actions/checadores-actions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, Container, Dropdown, Form, InputGroup, Pagination, Row } from "react-bootstrap";
@@ -13,6 +13,8 @@ import SuccessOverlay from "../SuccessOverlay";
 import ErrorOverlay from "../ErrorOverlay";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import { formatDateHours } from "@/lib/helpers";
+import OverLay from "../templates/OverLay";
+import ChecadorEmployeesModal from "./ChecadorEmployeesModal";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -137,6 +139,8 @@ export default function ChecadoresClient({
     const [rows, setRows] = useState<IChecador[]>(checadores);
     const [feedbackMsg, setFeedbackMsg] = useState(errorMessage ?? "");
     const [feedback, setFeedback] = useState<FeedbackState>(errorMessage ? "error" : null);
+    // Checador al que se le editan los empleados del modo checador
+    const [employeesRow, setEmployeesRow] = useState<IChecador | null>(null);
 
     const totalPages = Math.max(Math.ceil(total / limit), 1);
     const MAX_VISIBLE = 5;
@@ -242,6 +246,14 @@ export default function ChecadoresClient({
         });
     };
 
+    const handleEmployeesSaved = (message: string, employees: IChecadorEmployee[]) => {
+        const id = employeesRow?.id;
+        setRows((prev) => prev.map((r) => (r.id === id ? { ...r, employees } : r)));
+        setEmployeesRow(null);
+        setFeedbackMsg(message);
+        setFeedback("success");
+    };
+
     const hasFilters = !!(search || currentBranch || status || checkMethods);
 
     return (
@@ -261,6 +273,15 @@ export default function ChecadoresClient({
                 <ErrorOverlay
                     message={feedbackMsg}
                     onDone={() => setFeedback(null)}
+                />
+            </ConditionalRender>
+
+            <ConditionalRender cond={!!employeesRow}>
+                <ChecadorEmployeesModal
+                    key={employeesRow?.id}
+                    checador={employeesRow as IChecador}
+                    onHide={() => setEmployeesRow(null)}
+                    onSaved={handleEmployeesSaved}
                 />
             </ConditionalRender>
 
@@ -347,13 +368,14 @@ export default function ChecadoresClient({
                                         <th className="fw-bold text-center">Estatus</th>
                                         <th className="fw-bold">Tipo de validación</th>
                                         <th className="fw-bold text-nowrap">Última modificación</th>
+                                        <th className="fw-bold">Empleados</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
                                     <ConditionalRender cond={rows.length === 0}>
                                         <tr>
-                                            <td colSpan={6} className="text-center text-muted py-4">
+                                            <td colSpan={7} className="text-center text-muted py-4">
                                                 {errorMessage || (hasFilters
                                                     ? "No se encontró ningún checador con los filtros aplicados"
                                                     : "No hay checadores registrados")}
@@ -383,6 +405,33 @@ export default function ChecadoresClient({
                                             </td>
                                             <td className="text-nowrap small text-muted">
                                                 {row.checkMethodsUpdatedAt ? formatDateHours(row.checkMethodsUpdatedAt) : "—"}
+                                            </td>
+                                            <td>
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <ConditionalRender cond={(row.employees?.length ?? 0) > 0}>
+                                                        <OverLay string={(row.employees ?? []).map((e) => `${e.lastName ?? ""} ${e.name ?? ""}`.trim()).join(", ").toUpperCase()}>
+                                                            <span className="badge rounded-pill px-3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle text-nowrap">
+                                                                {row.employees?.length} empleado{row.employees?.length !== 1 ? "s" : ""}
+                                                            </span>
+                                                        </OverLay>
+                                                    </ConditionalRender>
+                                                    <ConditionalRender cond={(row.employees?.length ?? 0) === 0}>
+                                                        <span className="text-muted">—</span>
+                                                    </ConditionalRender>
+                                                    <ConditionalRender cond={canUpdate}>
+                                                        <OverLay string="Asignar empleados para el modo checador">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline-primary"
+                                                                aria-label={`Editar empleados de ${row.name}`}
+                                                                onClick={() => setEmployeesRow(row)}
+                                                                disabled={feedback === "loading"}
+                                                            >
+                                                                <i className="bi bi-people" />
+                                                            </Button>
+                                                        </OverLay>
+                                                    </ConditionalRender>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

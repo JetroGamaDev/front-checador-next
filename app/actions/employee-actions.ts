@@ -230,14 +230,17 @@ export async function validateEmployeeFaceCheck({
   }
 }
 
+// checkerId: modo checador del perfil del empleado (header x-checker-id con el token del empleado)
 export async function identifyEmployeeByFace({
   file,
   lat,
   lng,
+  checkerId,
 }: {
   file: File;
   lat: number;
   lng: number;
+  checkerId?: number | null;
 }): Promise<
   ActionResponse<{
     matched: boolean;
@@ -248,7 +251,7 @@ export async function identifyEmployeeByFace({
       lastName: string;
     };
     checkMessage?: string;
-  } | null>
+  } | null> & { status?: number }
 > {
   try {
     const { apiToken, API_URL } = await storeAction();
@@ -263,6 +266,7 @@ export async function identifyEmployeeByFace({
         headers: {
           Authorization: `Bearer ${apiToken}`,
           "Content-Type": "multipart/form-data",
+          ...(checkerId ? { "x-checker-id": String(checkerId) } : {}),
         },
         timeout: 30000,
       })
@@ -274,11 +278,13 @@ export async function identifyEmployeeByFace({
           throw new Error("La validación tardó demasiado, intenta de nuevo");
         }
 
-        throw new Error(
+        const failure = new Error(
           err?.response?.data?.message
             ? err.response.data.message
             : "Error al identificar por rostro"
-        );
+        ) as Error & { status?: number };
+        failure.status = err?.response?.status;
+        throw failure;
       });
 
     return {
@@ -297,6 +303,7 @@ export async function identifyEmployeeByFace({
       success: false,
       message: error.message || "Error al identificar por rostro",
       data: null,
+      status: error.status,
     };
   }
 }

@@ -24,6 +24,8 @@ type Props = {
   onHide: () => void;
   // Checador "solo NIP": sin el botón para regresar a validar por rostro
   allowFace?: boolean;
+  // Modo checador del empleado: su número de empleado ya capturado y sin poder editarlo
+  fixedIdCheck?: string;
 };
 
 function ChecadorEntryForm({
@@ -32,6 +34,7 @@ function ChecadorEntryForm({
   onBack,
   onHide,
   allowFace = true,
+  fixedIdCheck,
 }: Props) {
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -43,7 +46,7 @@ function ChecadorEntryForm({
     formState: { isSubmitting, errors, isDirty },
   } = useForm<TInputs>({
     defaultValues: {
-      idCheck: "",
+      idCheck: fixedIdCheck ?? "",
       passwordCheck: "",
     },
   });
@@ -61,16 +64,16 @@ function ChecadorEntryForm({
       setFeedback("error");
       setFeedbackMsg(res.message);
 
-      reset({ idCheck: "", passwordCheck: "" });
-      setTimeout(() => setFocus("idCheck"), 100); 
+      reset({ idCheck: fixedIdCheck ?? "", passwordCheck: "" });
+      setTimeout(() => setFocus(fixedIdCheck ? "passwordCheck" : "idCheck"), 100); 
       return;
     }
 
     setFeedback("success");
     setFeedbackMsg(res.data ?? "Registro completado");
 
-    reset({ idCheck: "", passwordCheck: "" });
-    setTimeout(() => setFocus("idCheck"), 100);
+    reset({ idCheck: fixedIdCheck ?? "", passwordCheck: "" });
+    setTimeout(() => setFocus(fixedIdCheck ? "passwordCheck" : "idCheck"), 100);
   };
 
 
@@ -126,7 +129,8 @@ function ChecadorEntryForm({
                   className="text-center fw-bold"
                   size="lg"
                   autoComplete="off"
-                  autoFocus={!disabled}
+                  autoFocus={!disabled && !fixedIdCheck}
+                  readOnly={!!fixedIdCheck}
                   {...register("idCheck")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {

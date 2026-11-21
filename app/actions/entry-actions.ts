@@ -58,17 +58,20 @@ export async function getWelcome(): Promise<ActionResponse<AxiosResponse>> {
   }
 }
 
+// checkerId: modo checador del perfil del empleado (va en el header x-checker-id con el token del empleado)
 export async function checkIn({
   idCheck,
   passwordCheck,
   lat,
   lng,
+  checkerId,
 }: {
   idCheck: string;
   passwordCheck: string;
   lat: number;
   lng: number;
-}): Promise<ActionResponse<string>> {
+  checkerId?: number | null;
+}): Promise<ActionResponse<string> & { status?: number }> {
   try {
     const { apiToken, apiUrl } = await storeToken();
 
@@ -84,6 +87,7 @@ export async function checkIn({
         {
           headers: {
             Authorization: `Bearer ${apiToken}`,
+            ...(checkerId ? { "x-checker-id": String(checkerId) } : {}),
           },
           timeout: 15000,
         }
@@ -104,11 +108,14 @@ export async function checkIn({
           redirect("/auth");
         }
 
-        throw new Error(
+        // Se conserva el estado HTTP: el modo checador apaga el modo con 403/404
+        const failure = new Error(
           err?.response?.data?.message
             ? err.response.data.message
             : "Error en la respuesta"
-        );
+        ) as Error & { status?: number };
+        failure.status = err?.response?.status;
+        throw failure;
       });
 
     return {
@@ -117,12 +124,13 @@ export async function checkIn({
       data: response.data.message,
     };
   } catch (error: unknown) {
-    const err = error as Error;
+    const err = error as Error & { status?: number };
     console.log(err);
 
     return {
       success: false,
       message: err.message,
+      status: err.status,
     };
   }
 }

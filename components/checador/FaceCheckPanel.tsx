@@ -24,7 +24,9 @@ type Props = {
   // Checador "solo rostro": sin la opción de código y contraseña
   allowManual?: boolean;
   // Checada rechazada (ej. el administrador cambió el tipo de validación): el kiosco vuelve a consultar /me
-  onCheckError?: () => void;
+  onCheckError?: (info: { status?: number; message: string }) => void;
+  // Modo checador del perfil del empleado: id del checador elegido (header x-checker-id)
+  checkerId?: number | null;
 };
 
 export default function FaceCheckPanel({
@@ -34,6 +36,7 @@ export default function FaceCheckPanel({
   onFaceSuccess,
   allowManual = true,
   onCheckError,
+  checkerId,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -207,13 +210,14 @@ const handleOpenCamera = useCallback(async () => {
         file,
         lat,
         lng,
+        checkerId,
       });
 
       if (!res.success) {
         setMessage(res.message || "No se pudo validar por rostro");
         setFeedback("error");
         setFeedbackMsg(res.message || "No se pudo validar por rostro");
-        onCheckError?.();
+        onCheckError?.({ status: res.status, message: res.message });
         return;
       }
 

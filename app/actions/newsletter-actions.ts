@@ -95,7 +95,8 @@ export async function findNewslettersById({
   }
 }
 
-export async function getActiveNotice(): Promise<INewsletter | null> {
+// checkerId: aviso del tablero del checador elegido en el modo checador del perfil del empleado
+export async function getActiveNotice({ checkerId }: { checkerId?: number | null } = {}): Promise<INewsletter | null> {
   try {
     const { apiToken, API_URL } = await storeAction();
 
@@ -114,18 +115,19 @@ export async function getActiveNotice(): Promise<INewsletter | null> {
 
     let getImg: string = '';
 
+    const headers = {
+      Authorization: `Bearer ${apiToken}`,
+      ...(checkerId ? { "x-checker-id": String(checkerId) } : {}),
+    };
+
     await axios.get(`${API_URL}/notice/listActive`, {
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-      },
+      headers,
       timeout: 15000,
     }).then(async (res) => {
       // Este then se resuelve cuendo el endpoint /notice/listActive devuelve respuesta correcta
 
         await axios.get(`${API_URL}/notice/img/${res.data.data.id}`, {
-          headers: {
-            Authorization: `Bearer ${apiToken}`,
-          },
+          headers,
           responseType: "arraybuffer",
           timeout: 15000,
         }).then((resImg) => {
