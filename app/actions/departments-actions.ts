@@ -130,6 +130,12 @@ export async function createDepartment({
   data: Department;
 }): Promise<ActionResponse<Department | null>> {
   try {
+    // El back aún exige la descripción
+    const description = String(data.description ?? "").trim();
+    if (!description) {
+      return { success: false, message: "La descripción es requerida" };
+    }
+
     const { apiToken, API_URL } = await storeAction();
 
     await axios
@@ -137,8 +143,9 @@ export async function createDepartment({
         `${API_URL}/department`,
         {
           nameDepartment: data.nameDepartment,
-          description: data.description,
-          idLeader: data.idLeader,
+          description,
+          // id interno del empleado como número; sin líder va null
+          idLeader: data.idLeader ? Number(data.idLeader) : null,
         },
         {
           headers: {

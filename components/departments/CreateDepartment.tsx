@@ -191,7 +191,9 @@ export default function CreateDepartmentComponent({
 
                             <Col md={12}>
                               <Entry
-                                register={register("description")}
+                                register={register("description", {
+                                  validate: (value) => !!String(value ?? "").trim() || "Este campo es requerido",
+                                })}
                                 label="Descripción:"
                                 invalid={!!errors.description}
                                 feedBack={errors.description?.message}
