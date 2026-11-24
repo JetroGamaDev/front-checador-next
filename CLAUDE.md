@@ -151,6 +151,7 @@ Al filtrar se hace `router.push` con los nuevos parámetros, y la vista server v
   - Para evitar doble clic, la pantalla de carga ya bloquea todo; además deshabilita el botón con `feedback === "loading"`.
   - Pinta los overlays después de cualquier `ModalBlur` para que queden encima.
   - Si un modal necesita datos, muestra `Loading` mientras llegan y abre el modal hasta tenerlos.
+- **Botones "Actualizar":** todo botón de actualizar o editar un registro (por ejemplo "Actualizar usuario") va con `variant="info"`.
 - **Confirmación:** antes de guardar, eliminar o descargar, usa `modalConfirm("¿Seguro que quieres …?", async () => { … })`.
 - **Render condicional:** usa `<ConditionalRender cond={...}>`.
 - **Tooltips:** usa `<OverLay string="…">`.
