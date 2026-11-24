@@ -1,51 +1,68 @@
-import {
-  Button,
-  Card,
-  Col,
-  Dropdown,
-  DropdownButton,
-  ProgressBar,
-} from "react-bootstrap";
+"use client";
+
+import { Button, Card, Col, Dropdown, DropdownButton } from "react-bootstrap";
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import moment from "moment-timezone";
 import {
   createDocument,
+  deleteDocumentFile,
+  deleteDocumentTemplate,
   getViewDocument,
 } from "@/app/actions/documents-actions";
-import toast from "react-hot-toast";
 import { useModals } from "@/context/ModalContext";
 import PDFViewerModal from "./PDFViewer";
-import { IPeriodDocument } from "@/lib/definitions";
+import { IEmployeeDocument } from "@/lib/definitions";
 import ModalExpirationDate from "./ModalExpirationDate";
-import { formatDate } from "date-fns";
 import ConditionalRender from "@/components/ConditionalRender";
+import Loading from "@/components/LoadingSpinner";
+import SuccessOverlay from "@/components/SuccessOverlay";
+import ErrorOverlay from "@/components/ErrorOverlay";
+import { formatCreatedAt } from "@/lib/helpers";
+
+type FeedbackState = "loading" | "success" | "error" | null;
+
+// Vencida si el día de vencimiento ya pasó (día de calendario en Ciudad de México)
+function isExpired(date?: string | null) {
+  if (!date) return false;
+  const today = moment.tz("America/Mexico_City").format("YYYY-MM-DD");
+  return String(date).slice(0, 10) < today;
+}
 
 function DocumentsGrid({
   doc,
   idEmployee,
+  canDeleteFile = false,
+  canDeleteTemplate = false,
 }: {
-  doc: IPeriodDocument;
+  doc: IEmployeeDocument;
   idEmployee: number;
+  canDeleteFile?: boolean;
+  canDeleteTemplate?: boolean;
 }) {
+  const router = useRouter();
+  const { modalConfirm } = useModals();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [modalExpirationDate, setModalExpirationDate] = useState(false);
-
   const [pdfUrl, setPdfUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [loadingDoc] = useState(false);
 
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
+  const [feedbackMsg, setFeedbackMsg] = useState("");
+  // Al reemplazar, el back borra la fecha de vencimiento: después del éxito se ofrece capturarla
+  const [askDateAfter, setAskDateAfter] = useState(false);
+  // Recién reemplazado: la fecha anterior ya no aplica aunque el listado aún no se recargue
+  const [dateCleared, setDateCleared] = useState(false);
 
-  const { modalError } = useModals();
+  const showGear = doc.exist || canDeleteTemplate;
+  const expired = isExpired(doc.dateExpiration);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      const filesArray = Array.from(files);
-      setSelectedFiles(filesArray);
-
-      // No llamamos a onFilesChange inmediatamente, esperamos a que el usuario haga clic en "Subir"
+      setSelectedFiles(Array.from(files));
     }
   };
 
@@ -53,13 +70,22 @@ function DocumentsGrid({
     fileInputRef.current?.click();
   };
 
-  const handleUpload = async () => {
-    if (selectedFiles.length > 0) {
-      setLoading(true);
-      const toastId = toast.loading("Subiendo archivo...");
-      const formData = new FormData();
+  const resetFiles = () => {
+    setSelectedFiles([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
-      // Agregar cada archivo al FormData
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+
+    const isReplace = doc.exist;
+    setFeedback("loading");
+    setFeedbackMsg("Subiendo archivo...");
+
+    try {
+      const formData = new FormData();
       selectedFiles.forEach((file) => {
         formData.append("files", file);
       });
@@ -71,190 +97,278 @@ function DocumentsGrid({
         idPeriod: doc.idPeriod,
       });
 
-      if (!res.success) return modalError(res.message);
-
-      toast.success(res.message, { id: toastId });
-
-      // Opcional: resetear el estado después de subir
-      setSelectedFiles([]);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (!res.success) {
+        setFeedbackMsg(res.message || "No se pudo subir el archivo");
+        setFeedback("error");
+        return;
       }
-      setLoading(false);
+
+      resetFiles();
+      setAskDateAfter(isReplace);
+      setDateCleared(isReplace);
+      setFeedbackMsg(res.message || "Archivo cargado correctamente");
+      setFeedback("success");
+    } catch {
+      setFeedbackMsg("Error inesperado, intenta de nuevo");
+      setFeedback("error");
+    }
+  };
+
+  const handleSuccessDone = () => {
+    setFeedback(null);
+    router.refresh();
+
+    if (askDateAfter) {
+      setAskDateAfter(false);
+      modalConfirm(
+        "El archivo nuevo no tiene fecha de vencimiento. ¿Quieres capturarla ahora?",
+        () => setModalExpirationDate(true)
+      );
     }
   };
 
   const handleGetDocument = async () => {
-
     try {
-      setLoading(true);
+      setFeedback("loading");
+      setFeedbackMsg("Cargando documento...");
+
       const res = await getViewDocument({
         idDocument: doc.id,
         idEmployee,
         idPeriod: doc.idPeriod,
       });
-      if (!res.success) return modalError(res.message)
+
+      if (!res.success) {
+        setFeedbackMsg(res.message || "No se pudo abrir el documento");
+        setFeedback("error");
+        return;
+      }
+
+      setFeedback(null);
       setPdfUrl(res.data || "");
       setShowPdfModal(true);
-      setLoading(false);
-
-    } finally {
-      setLoading(false);
+    } catch {
+      setFeedbackMsg("Error inesperado, intenta de nuevo");
+      setFeedback("error");
     }
   };
 
-  const handleCancel = () => {
-    setSelectedFiles([]);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const handleDeleteFile = () => {
+    modalConfirm("Se eliminará el archivo; la plantilla queda para volver a cargarlo.", async () => {
+      try {
+        setFeedback("loading");
+        setFeedbackMsg("Eliminando documento...");
+
+        const res = await deleteDocumentFile({ idEmployee, idDocument: doc.id, idPeriod: doc.idPeriod });
+
+        if (!res.success) {
+          setFeedbackMsg(res.message || "No se pudo eliminar el documento");
+          setFeedback("error");
+          return;
+        }
+
+        setFeedbackMsg(res.message);
+        setFeedback("success");
+      } catch {
+        setFeedbackMsg("Error inesperado, intenta de nuevo");
+        setFeedback("error");
+      }
+    });
   };
 
+  const handleDeleteTemplate = () => {
+    modalConfirm("Se eliminará la plantilla y su archivo (si tiene). No se puede deshacer.", async () => {
+      try {
+        setFeedback("loading");
+        setFeedbackMsg("Eliminando plantilla...");
 
+        const res = await deleteDocumentTemplate({ idEmployee, idDocument: doc.id });
 
+        if (!res.success) {
+          setFeedbackMsg(res.message || "No se pudo eliminar la plantilla");
+          setFeedback("error");
+          return;
+        }
+
+        setFeedbackMsg(res.message);
+        setFeedback("success");
+      } catch {
+        setFeedbackMsg("Error inesperado, intenta de nuevo");
+        setFeedback("error");
+      }
+    });
+  };
 
   return (
     <>
+      <ConditionalRender cond={feedback === "loading"}>
+        <Loading message={feedbackMsg} />
+      </ConditionalRender>
+      <ConditionalRender cond={feedback === "success"}>
+        <SuccessOverlay message={feedbackMsg} onDone={handleSuccessDone} />
+      </ConditionalRender>
+      <ConditionalRender cond={feedback === "error"}>
+        <ErrorOverlay message={feedbackMsg} onDone={() => setFeedback(null)} />
+      </ConditionalRender>
+
       <Col md="3">
         <Card
           className="rounded shadow-sm bg-body-tertiary"
-          style={{ height: "200px" }}
+          style={{ minHeight: "200px" }}
         >
           <Card.Header
-            className="d-flex justify-content-between align-items-center"
-            style={{ height: "50px" }}
+            className="d-flex justify-content-between align-items-center gap-2"
+            style={{ minHeight: "50px" }}
           >
-            <Card.Title
-              className="text-center text-uppercase mb-0"
-              style={{ fontSize: "0.9rem" }}
-            >
-              {doc.titleView}
-            </Card.Title>
-            {doc.exist && (
+            <div style={{ minWidth: 0 }}>
+              <Card.Title
+                className="text-uppercase mb-0 text-break"
+                style={{ fontSize: "0.9rem" }}
+              >
+                {doc.titleView}
+              </Card.Title>
+              <ConditionalRender cond={doc.previousPeriod === true}>
+                <span className="badge rounded-pill px-2 py-1 mt-1 fw-semibold bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">
+                  Periodo anterior
+                </span>
+              </ConditionalRender>
+            </div>
+
+            <ConditionalRender cond={showGear}>
               <DropdownButton
                 size="sm"
                 variant="secondary"
                 title={<i className="bi bi-gear-fill"></i>}
+                disabled={feedback === "loading"}
               >
-                <Dropdown.Item
-                  as={Button}
-                  onClick={() => setModalExpirationDate(!modalExpirationDate)}
-                >
-                  <i className="bi bi-calendar-minus me-1"></i>
-                  Fecha de expiración
-                </Dropdown.Item>
+                <ConditionalRender cond={doc.exist}>
+                  <Dropdown.Item as={Button} onClick={() => setModalExpirationDate(true)}>
+                    <i className="bi bi-calendar-minus me-1"></i>
+                    Fecha de vencimiento
+                  </Dropdown.Item>
+                </ConditionalRender>
+                <ConditionalRender cond={doc.exist && canDeleteFile}>
+                  <Dropdown.Item as={Button} onClick={handleDeleteFile} className="text-danger">
+                    <i className="bi bi-file-earmark-x me-1"></i>
+                    Eliminar documento
+                  </Dropdown.Item>
+                </ConditionalRender>
+                <ConditionalRender cond={canDeleteTemplate}>
+                  <Dropdown.Item as={Button} onClick={handleDeleteTemplate} className="text-danger">
+                    <i className="bi bi-trash me-1"></i>
+                    Eliminar plantilla
+                  </Dropdown.Item>
+                </ConditionalRender>
               </DropdownButton>
-            )}
+            </ConditionalRender>
           </Card.Header>
-          {loading ? (
-            <div
-              className="text-center h-100 align-content-center"
-              style={{ height: "200px" }}
-            >
-              <ProgressBar variant="primary" striped now={100} animated />
-            </div>
-          ) : (
-            <Card.Body>
-              {/* Input file oculto */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept=".jpg,.jpeg,.png,.pdf,.webp"
-                multiple
-                style={{ display: "none" }}
-              />
 
-              {/* Información de archivos seleccionados */}
-              {selectedFiles.length > 0 && (
-                <div className="mb-2">
-                  <small className="text-muted">
-                    {selectedFiles.length} archivo(s) seleccionado(s)
-                  </small>
-                  {selectedFiles.slice(0, 2).map((file, index) => (
-                    <div key={index} className="small text-truncate">
-                      {file.name}
-                    </div>
-                  ))}
-                  {selectedFiles.length > 2 && (
-                    <div className="small text-muted">
-                      +{selectedFiles.length - 2} más
-                    </div>
-                  )}
-                </div>
-              )}
+          <Card.Body>
+            {/* Input file oculto */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".jpg,.jpeg,.png,.pdf,.webp"
+              multiple
+              style={{ display: "none" }}
+            />
 
-              {/* Botones condicionales */}
-              <div className="d-flex flex-column justify-content-center gap-1">
-                {selectedFiles.length === 0 ? (
-                  <>
-                    {/* <Button variant="success" onClick={handleButtonClick}>
-                      {doc.exist ? "Reemplazar" : "Cargar"}
-                    </Button> */}
-                    <ConditionalRender cond={doc.exist}>
-                      <Button variant="primary" onClick={handleButtonClick}> Reemplazar </Button>
-
-                      <Button
-                        variant="secondary"
-                        onClick={handleGetDocument}
-                        disabled={loadingDoc}
-                        >
-                        Visualizar
-                      </Button>
-                      {doc.dateExpiration && (
-                        <div
-                          className="fw-semibold text-center"
-                          style={{ fontSize: "0.9rem" }}
-                        >
-                          Expira:{" "}
-                          {formatDate(doc.dateExpiration, "dd/MM/yyyy")}
-                        </div>
-                      )}
-                    </ConditionalRender>
-
-                    <ConditionalRender cond={!doc.exist}>
-                      <Button variant="success" onClick={handleButtonClick}> Cargar </Button>
-                    </ConditionalRender>
-
-
-                    {/* {doc.exist && (
-                      <>
-                        
-                      </>
-                    )} */}
-                  </>
-                ) : (
-                  <>
-                    <Button variant="success" onClick={handleUpload}>
-                      Subir
-                    </Button>
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={handleCancel}
-                    >
-                      Cancelar
-                    </Button>
-                  </>
-                )}
+            {/* Información de archivos seleccionados */}
+            <ConditionalRender cond={selectedFiles.length > 0}>
+              <div className="mb-2">
+                <small className="text-muted">
+                  {selectedFiles.length} archivo(s) seleccionado(s)
+                </small>
+                {selectedFiles.slice(0, 2).map((file, index) => (
+                  <div key={index} className="small text-truncate">
+                    {file.name}
+                  </div>
+                ))}
+                <ConditionalRender cond={selectedFiles.length > 2}>
+                  <div className="small text-muted">
+                    +{selectedFiles.length - 2} más
+                  </div>
+                </ConditionalRender>
               </div>
-            </Card.Body>
-          )}
+            </ConditionalRender>
+
+            <div className="d-flex flex-column justify-content-center gap-1">
+              <ConditionalRender cond={selectedFiles.length === 0}>
+                <ConditionalRender cond={doc.exist}>
+                  <Button variant="primary" onClick={handleButtonClick} disabled={feedback === "loading"}>
+                    Reemplazar
+                  </Button>
+
+                  <Button variant="secondary" onClick={handleGetDocument} disabled={feedback === "loading"}>
+                    Visualizar
+                  </Button>
+
+                  <ConditionalRender cond={!!doc.dateExpiration}>
+                    <div
+                      className={`fw-semibold text-center ${expired ? "text-danger-emphasis" : ""}`}
+                      style={{ fontSize: "0.9rem" }}
+                    >
+                      {expired ? "Venció: " : "Expira: "}
+                      {formatCreatedAt(doc.dateExpiration ?? undefined)}
+                      <ConditionalRender cond={expired}>
+                        <span className="badge rounded-pill px-2 py-1 ms-2 fw-semibold bg-danger-subtle text-danger-emphasis border border-danger-subtle">
+                          Vencido
+                        </span>
+                      </ConditionalRender>
+                    </div>
+                  </ConditionalRender>
+                </ConditionalRender>
+
+                <ConditionalRender cond={!doc.exist}>
+                  <Button variant="success" onClick={handleButtonClick} disabled={feedback === "loading"}>
+                    Cargar
+                  </Button>
+                </ConditionalRender>
+              </ConditionalRender>
+
+              <ConditionalRender cond={selectedFiles.length > 0}>
+                <Button variant="success" onClick={handleUpload} disabled={feedback === "loading"}>
+                  Subir
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={resetFiles}
+                  disabled={feedback === "loading"}
+                >
+                  Cancelar
+                </Button>
+              </ConditionalRender>
+            </div>
+          </Card.Body>
         </Card>
       </Col>
+
       <PDFViewerModal
         show={showPdfModal}
         onHide={() => setShowPdfModal(false)}
         pdfBase64Url={pdfUrl}
       />
-      <ModalExpirationDate
-        show={modalExpirationDate}
-        onHide={() => setModalExpirationDate(!modalExpirationDate)}
-        idPeriod={doc.idPeriod}
-        idDocument={doc.id}
-        idEmpleado={idEmployee}
-        title={doc.titleView}
-      />
+
+      <ConditionalRender cond={modalExpirationDate}>
+        <ModalExpirationDate
+          onHide={() => {
+            setModalExpirationDate(false);
+            setDateCleared(false);
+          }}
+          onSaved={() => {
+            setModalExpirationDate(false);
+            setDateCleared(false);
+            router.refresh();
+          }}
+          idPeriod={doc.idPeriod}
+          idDocument={doc.id}
+          idEmpleado={idEmployee}
+          title={doc.titleView}
+          currentDate={dateCleared ? null : doc.dateExpiration}
+        />
+      </ConditionalRender>
     </>
   );
 }

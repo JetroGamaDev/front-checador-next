@@ -2,7 +2,7 @@ import { fetchEmployees, findEmployeeById } from "@/app/actions/employee-actions
 import { fetchDepartments } from "@/app/actions/departments-actions";
 import { fetchBranches } from "@/app/actions/branches-actionst";
 import EmployeeTableClient from "@/components/employee/EmployeeTableList";
-import { fetchDocumentTypes } from "@/app/actions/documents-actions";
+import { fetchEmployeeDocuments } from "@/app/actions/documents-actions";
 import { fetchVacationByEmployee } from "@/app/actions/vacations-actions";
 import EmployeeDetailsView from "@/components/employee/EmployeeOneInfo";
 
@@ -44,7 +44,7 @@ export default async function ListAllEmployees({
   if (id && id !== "null") {
     const [employee, documents, vacations] = await Promise.all([
       findEmployeeById({ id: Number(id) }),
-      fetchDocumentTypes({ id: Number(id) }),
+      fetchEmployeeDocuments({ idEmployee: Number(id) }),
       fetchVacationByEmployee({ idEmployee: Number(id) }),
     ]);    
 
@@ -53,7 +53,8 @@ export default async function ListAllEmployees({
         branches={branches}
         departments={departments}
         employees={employees.data}
-        documents={documents}
+        documents={documents.data ?? []}
+        documentsError={documents.success ? "" : documents.message}
         employee={employee!}
         id={id}
         vacations={vacations}

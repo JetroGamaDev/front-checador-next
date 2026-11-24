@@ -690,9 +690,12 @@ export async function reEntry({
   }
 }
 
+// La plantilla ya es por empleado: se crea solo para idEmployee (el del perfil abierto)
 export async function createNewDocumentEmployee({
+  idEmployee,
   nameDocument,
 }: {
+  idEmployee: number;
   nameDocument: string;
 }): Promise<
   ActionResponse<{
@@ -708,7 +711,8 @@ export async function createNewDocumentEmployee({
       .post(
         `${API_URL}/employee/newDocument`,
         {
-          nameDocument,
+          idEmployee: Number(idEmployee),
+          nameDocument: nameDocument.trim(),
         },
         {
           headers: {
@@ -718,10 +722,11 @@ export async function createNewDocumentEmployee({
       )
       .then((res) => res.data)
       .catch((err) => {
+        // En validación el back manda errors[0].message
         throw new Error(
-          err.response?.data?.message
-            ? err.response.data.message
-            : "Error en la respuesta"
+          err.response?.data?.errors?.[0]?.message
+            || err.response?.data?.message
+            || "Error en la respuesta"
         );
       });
 

@@ -17,7 +17,7 @@ import {
   Branch,
   Department,
   Employee,
-  IPeriod,
+  IEmployeeDocument,
 } from "@/lib/definitions";
 import DocumentsGrid from "@/app/(auth)/app/employee/views/DocuementsGrid";
 import { useSession } from "next-auth/react";
@@ -134,7 +134,9 @@ type Props = {
   departments: Department[];
   branches: Branch[];
   employees: Employee[];
-  documents: IPeriod[];
+  documents: IEmployeeDocument[];
+  // Mensaje del back si no se pudo listar (404 "Empleado no encontrado", 400 "Error al listar documentos")
+  documentsError?: string;
   vacations: Vacations[];
 };
 
@@ -145,6 +147,7 @@ export default function EmployeeDetailsView({
   branches,
   employees,
   documents,
+  documentsError = "",
   vacations,
 }: Props) {
   const router = useRouter();
@@ -274,6 +277,9 @@ export default function EmployeeDetailsView({
   }
 
   const canListEmployeePermissions = !!session?.user?.permissions?.some((p) => p.text === "listar_permisos_empleados");
+  // Opciones del engrane de cada documento
+  const canDeleteDocumentFile = !!session?.user?.permissions?.some((p) => p.text === "eliminar_documento_de_plantilla");
+  const canDeleteDocumentTemplate = !!session?.user?.permissions?.some((p) => p.text === "eliminar_plantilla_de_documento");
   const canUpdateEmployeePermissions = !!session?.user?.permissions?.some((p) => p.text === "actualizar_permisos_empleados");
 
   const canResetPasswordSystem = !passwordResetDenied &&
@@ -1521,45 +1527,27 @@ export default function EmployeeDetailsView({
                             )}
                         </div>
 
-                        <Accordion flush>
-                          {documents.map((period, index) => (
-                            <Accordion.Item
-                              eventKey={String(period.idPeriod)}
-                              key={`${period.idPeriod}-docs-${index}`}
-                              className="border rounded-3 mb-3 overflow-hidden"
-                            >
-                              <Accordion.Header>
-                                <div className="d-flex align-items-center gap-2">
-                                  <i className="bi bi-folder2-open text-primary" />
-                                  <span className="fw-semibold">
-                                    Periodo {index + 1}
-                                  </span>
-                                </div>
-                              </Accordion.Header>
-
-                              <Accordion.Body className="">
-                                <Row className="g-3">
-                                  {period.documents?.length ? (
-                                    period.documents.map((doc, docIndex) => (
-                                      <DocumentsGrid
-                                        key={`${doc.id ?? doc.title}-${docIndex}`}
-                                        doc={doc}
-                                        idEmployee={Number(id)}
-                                      />
-                                    ))
-                                  ) : (
-                                    <Col xs={12}>
-                                      <div className="text-center text-muted py-4">
-                                        <i className="bi bi-file-earmark-x fs-4 d-block mb-2" />
-                                        Sin documentos registrados
-                                      </div>
-                                    </Col>
-                                  )}
-                                </Row>
-                              </Accordion.Body>
-                            </Accordion.Item>
+                        {/* Una sola cuadrícula; cada tarjeta se identifica por id + idPeriod */}
+                        <Row className="g-3">
+                          {documents.map((doc) => (
+                            <DocumentsGrid
+                              key={`${doc.id}-${doc.idPeriod}`}
+                              doc={doc}
+                              idEmployee={Number(id)}
+                              canDeleteFile={canDeleteDocumentFile}
+                              canDeleteTemplate={canDeleteDocumentTemplate}
+                            />
                           ))}
-                        </Accordion>
+
+                          <ConditionalRender cond={documents.length === 0}>
+                            <Col xs={12}>
+                              <div className="text-center text-muted py-4">
+                                <i className={`bi ${documentsError ? "bi-exclamation-triangle" : "bi-file-earmark-x"} fs-4 d-block mb-2`} />
+                                {documentsError || "Sin documentos registrados"}
+                              </div>
+                            </Col>
+                          </ConditionalRender>
+                        </Row>
                       </Card.Body>
                     </Card>
                   </Col>
@@ -1793,9 +1781,11 @@ export default function EmployeeDetailsView({
             <ConditionalRender cond={showNewDocumentEmployeeModal}>
               <ModalBlur onClose={() => setShowNewDocumentEmployeeModal(false)}>
                 <NewDocumentEmployeeComponent
+                  idEmployee={Number(id)}
                   onClose={() => setShowNewDocumentEmployeeModal(false)}
                   onSuccess={() => {
                     setShowNewDocumentEmployeeModal(false);
+                    router.refresh();
                   }}
                 />
               </ModalBlur>

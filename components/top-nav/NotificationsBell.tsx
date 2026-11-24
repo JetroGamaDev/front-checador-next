@@ -29,6 +29,8 @@ function typeVariant(incidenceRef: string) {
             return { icon: "bi-laptop", color: "purple" };
         case "INCAPACIDAD":
             return { icon: "bi-clipboard2-pulse", color: "orange" };
+        case "DOCUMENTO_EMPLEADO":
+            return { icon: "bi-file-earmark-text", color: "teal" };
         default:
             return { icon: "bi-bell", color: "secondary" };
     }
@@ -48,7 +50,15 @@ function normalizeView(view: string){
             return "devices";
         case "INCAPACIDAD":
             return "inability";
-    }   
+        case "DOCUMENTO_EMPLEADO":
+            return "employee";
+    }
+}
+
+// Vencimiento de documento: idIncidence es el id del empleado; se abre su perfil en la pestaña Documentos
+function notificationHref(el: INotifications) {
+    const base = `/app/${normalizeView(el.incidenceRef)}?view_type=form&id=${el.idIncidence}`;
+    return el.incidenceRef === "DOCUMENTO_EMPLEADO" ? `${base}&tab=documents` : base;
 }
 
 // export type NotificationIncidenceType =
@@ -188,7 +198,7 @@ function NotificationsBell() {
                             <Dropdown.Item
                                 key={el._id}
                                 as="a"
-                                href={`/app/${normalizeView(el.incidenceRef)}?view_type=form&id=${el.idIncidence}`}
+                                href={notificationHref(el)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={() => handleMarkAsRead(String(el._id))}

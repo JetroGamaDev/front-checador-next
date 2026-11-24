@@ -283,20 +283,20 @@ export interface ICheckInFeedback {
   branchEmployee: Branch;
 }
 
-export interface IPeriod {
-  idPeriod: number;
-  documents: IPeriodDocument[];
-}
-
-export interface IPeriodDocument {
+// Documento (plantilla) del empleado: GET /employee/documents/:idEmployee. Se identifica por id + idPeriod
+export interface IEmployeeDocument {
   id: number;
-  url: string;
   idPeriod: number;
-  exist: boolean;
   title: string;
   titleView: string;
-  createdAt: string;
-  dateExpiration?: string;
+  // true = ya tiene archivo
+  exist: boolean;
+  dateExpiration?: string | null;
+  createdAt?: string | null;
+  uploadedAt?: string | null;
+  uploadedBy?: { idEmployee: number | null; email: string } | null;
+  // Archivo de antes de un reingreso
+  previousPeriod?: boolean;
 }
 
 
