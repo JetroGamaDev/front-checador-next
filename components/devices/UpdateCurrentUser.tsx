@@ -11,6 +11,7 @@ import { Button, Card, Col, Form, Row } from "react-bootstrap";
 import { useModals } from "@/context/ModalContext";
 import { updateCurrentUser } from "@/app/actions/devices-actions";
 import { Entry } from "../fields";
+import { EMPTY_EXTERNAL_PERSON, ExternalPersonFields } from "./ExternalPerson";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -28,7 +29,17 @@ function getDefaultValues(device?: IUpdateCurrentUser | null): IUpdateCurrentUse
         emailGmail: device?.emailGmail ?? "",
         passwordEmail: device?.passwordEmail ?? "",
         pinPhone: device?.pinPhone ?? "",
-        location: device?.location ?? ""
+        location: device?.location ?? "",
+        ...(device?.externalPerson
+            ? {
+                externalPerson: {
+                    ...EMPTY_EXTERNAL_PERSON,
+                    ...Object.fromEntries(
+                        Object.entries(device.externalPerson).map(([k, v]) => [k, v ?? ""])
+                    ),
+                },
+            }
+            : {}),
     }
 }
 
@@ -38,10 +49,11 @@ export default function UpdateCurrentUser({
     idDevice,
     type,
 }: ModalBasicProps & ModalAction) {
+    const isExternal = !!device?.externalPerson;
     const {
         register,
         handleSubmit,
-        formState: { isSubmitting },
+        formState: { isSubmitting, errors },
     } = useForm<IUpdateCurrentUser>({
         defaultValues: getDefaultValues(device),
     });
@@ -72,7 +84,8 @@ export default function UpdateCurrentUser({
                         emailGmail: data.emailGmail,
                         passwordEmail: data.passwordEmail,
                         pinPhone: data.pinPhone,
-                        location: data.location
+                        location: data.location,
+                        ...(isExternal ? { externalPerson: data.externalPerson } : {}),
                     }
                 });
 
@@ -137,6 +150,28 @@ export default function UpdateCurrentUser({
 
 
                 <Row className="g-3">
+
+                    <ConditionalRender cond={isExternal}>
+                        <Col md={12}>
+                            <Card className="border rounded-4">
+                                <Card.Body>
+                                    <div className="d-flex align-items-center justify-content-between gap-2 mb-3">
+                                        <label className="d-flex align-items-center gap-2 fw-bold mb-0">
+                                            <i className="bi bi-person-plus text-primary" />
+                                            Persona externa
+                                        </label>
+                                        <span className="badge rounded-pill px-3 py-2 fw-semibold bg-orange-subtle text-orange-emphasis border border-orange-subtle">
+                                            Externo
+                                        </span>
+                                    </div>
+                                    <ExternalPersonFields
+                                        reg={(field, rules) => register(`externalPerson.${field}`, rules)}
+                                        errorOf={(field) => errors.externalPerson?.[field]?.message}
+                                    />
+                                </Card.Body>
+                            </Card>
+                        </Col>
+                    </ConditionalRender>
 
                     <ConditionalRender cond={type === "celular"}>
                         <Col md={12}>

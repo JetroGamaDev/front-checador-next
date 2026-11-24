@@ -215,6 +215,8 @@ export interface IPhone {
 }
 
 export interface IUpdateCurrentUser {
+    // Solo cuando la asignación es de una persona externa (no se manda para empleados)
+    externalPerson?: IExternalPerson | null;
     phoneNumber?: string | null;
     extentionNumber?: string | null;
     emailCompany?: string | null;

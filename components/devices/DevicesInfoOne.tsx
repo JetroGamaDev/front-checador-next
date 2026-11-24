@@ -849,7 +849,9 @@ export function DeviceOne({
                                 emailGmail: device?.currentAssignment?.emailGmail,
                                 passwordEmail: device?.currentAssignment?.passwordEmail,
                                 pinPhone: device?.currentAssignment?.pinPhone,
-                                location: device?.currentAssignment?.location
+                                location: device?.currentAssignment?.location,
+                                // Solo para persona externa: el modal muestra además sus datos
+                                externalPerson: !device?.employee ? device?.currentAssignment?.externalPerson ?? null : null,
                             }
                         }
                         idDevice={device.id}

@@ -722,7 +722,9 @@ export async function updateCurrentUser({
       emailGmail: data.emailGmail,
       passwordEmail: data.passwordEmail,
       pinPhone: data.pinPhone,
-      location: data.location
+      location: data.location,
+      // Persona externa: se mandan sus datos; para un empleado no se manda
+      ...(data.externalPerson ? { externalPerson: cleanExternalPerson(data.externalPerson) } : {}),
     }
 
     await axios
@@ -739,13 +741,7 @@ export async function updateCurrentUser({
 
       })
       .catch((err) => {
-        throw new Error(
-          err.response?.data?.message
-            ? Array.isArray(err.response.data.message)
-              ? err.response.data.message.join(", ")
-              : err.response.data.message
-            : "Error en la respuesta"
-        );
+        throw new Error(apiErrorMessage(err));
       });
     revalidatePath("/app/devices");
 
