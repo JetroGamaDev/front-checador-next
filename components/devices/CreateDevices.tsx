@@ -16,6 +16,7 @@ import moment from "moment";
 import { es } from "date-fns/locale";
 import { storeAction } from "@/app/actions/storeActions";
 import { useModals } from "@/context/ModalContext";
+import { AssigneeType, AssigneeTypeToggle, ExternalPersonFields } from "./ExternalPerson";
 import { createDevice } from "@/app/actions/devices-actions";
 import DnsBadgeInput from "./DnsBadgeInput";
 import { formatCreatedAt } from "@/lib/helpers";
@@ -93,6 +94,7 @@ export default function CreateDeviceComponent({
 }) {
     const {
         register,
+        unregister,
         reset,
         watch,
         control,
@@ -108,6 +110,8 @@ export default function CreateDeviceComponent({
     const [feedback, setFeedback] = useState<FeedbackState>(null);
     const [feedbackMsg, setFeedbackMsg] = useState("");
     const [addEmployee, setAddEmployee] = useState(false);
+    // Asignar a un empleado del sistema o a una persona externa
+    const [assigneeType, setAssigneeType] = useState<AssigneeType>("employee");
     const [dataSystem, setDataSystem] = useState<Employee[] | []>([]);
     const { modalConfirm } = useModals();
     const router = useRouter();
@@ -213,6 +217,20 @@ export default function CreateDeviceComponent({
 
     const handleCancel = () => {
         setAddEmployee(false);
+        setAssigneeType("employee");
+        setValue("currentAssignment.idEmployee", null);
+        unregister("currentAssignment.externalPerson");
+    }
+
+    // Al cambiar de opción se limpian los datos de la otra
+    const handleAssigneeType = (type: AssigneeType) => {
+        if (type === assigneeType) return;
+        setAssigneeType(type);
+        if (type === "external") {
+            setValue("currentAssignment.idEmployee", null);
+        } else {
+            unregister("currentAssignment.externalPerson");
+        }
     }
 
 
@@ -962,20 +980,33 @@ export default function CreateDeviceComponent({
                                                 </div>
 
                                                 <ConditionalRender cond={addEmployee === true}>
-                                                    <Row className="g-3">
-                                                        <Col md={6}>
-                                                            <RelationField
-                                                                options={employees.map((e) => ({
-                                                                    id: Number(e.id) || 0,
-                                                                    displayName: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}` || "",
-                                                                    name: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}`,
-                                                                }))}
-                                                                register={register("currentAssignment.idEmployee")}
-                                                                control={control}
-                                                                callBackMode="id"
-                                                                label="Empleado relacionado:"
+                                                    <AssigneeTypeToggle value={assigneeType} onChange={handleAssigneeType} />
+
+                                                    <ConditionalRender cond={assigneeType === "external"}>
+                                                        <div className="mb-3">
+                                                            <ExternalPersonFields
+                                                                reg={(field, rules) => register(`currentAssignment.externalPerson.${field}`, rules)}
+                                                                errorOf={(field) => errors.currentAssignment?.externalPerson?.[field]?.message}
                                                             />
-                                                        </Col>
+                                                        </div>
+                                                    </ConditionalRender>
+
+                                                    <Row className="g-3">
+                                                        <ConditionalRender cond={assigneeType === "employee"}>
+                                                            <Col md={6}>
+                                                                <RelationField
+                                                                    options={employees.map((e) => ({
+                                                                        id: Number(e.id) || 0,
+                                                                        displayName: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}` || "",
+                                                                        name: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}`,
+                                                                    }))}
+                                                                    register={register("currentAssignment.idEmployee")}
+                                                                    control={control}
+                                                                    callBackMode="id"
+                                                                    label="Empleado relacionado:"
+                                                                />
+                                                            </Col>
+                                                        </ConditionalRender>
 
                                                         <Col md={6}>
                                                             <RelationField

@@ -1,6 +1,7 @@
 "use client"
 
 import { IDevices, IWaiverContent } from "@/lib/devices/interface"
+import { externalPersonName } from "./ExternalPerson";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -76,6 +77,14 @@ export default function ResposiveDoc({
     const [completeSignatures, setCompleteSignatures] = useState(false);
     const [signaturesOneComplete, setSignaturesOneComplete] = useState(false);
     const [showSecondSignatures, setShowSecondSignatures] = useState(false);
+
+    // Persona externa (practicante, etc.): firma en persona desde la sesión de IT con idSignatory = 0
+    const externalPerson = device.currentAssignment?.externalPerson ?? null;
+    const isExternal = waiver?.isExternal === true || (!device.employee && !!externalPerson);
+    const assigneeName = isExternal
+        ? waiver?.employeeName || externalPersonName(externalPerson)
+        : `${device.employee?.name ?? ""} ${device.employee?.lastName ?? ""}`.trim();
+    const employeeSignatoryId = isExternal ? 0 : Number(device.employee?.id);
 
     const isSignatureComplete = (label: string) => {
         const matches = device.currentAssignment?.signatures?.filter((l) => l.label === label) ?? [];
@@ -274,7 +283,7 @@ export default function ResposiveDoc({
                                     {/* FIRMA UNO EMPLEADO */}
                                     <Col xs={12} md={6}>
                                         <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100 w-100">
-                                            <span className="fw-semibold text-capitalize">{device.employee?.name} {device.employee?.lastName}</span>
+                                            <span className="fw-semibold text-capitalize">{assigneeName}</span>
                                             <ConditionalRender cond={!!waiver?.employeePosition}>
                                                 <span className="small text-uppercase">{waiver?.employeePosition}</span>
                                             </ConditionalRender>
@@ -309,7 +318,8 @@ export default function ResposiveDoc({
                                                         <SignatureDevicewOne
                                                             key={`${firmaUno?.id}-${firmaUno?.url}`}
                                                             idDevice={Number(device.id)}
-                                                            idEmployee={Number(firmaUno?.idSignatory)}
+                                                            idEmployee={isExternal ? 0 : Number(firmaUno?.idSignatory)}
+                                                            external={isExternal}
                                                             idSignature={Number(firmaUno?.id)}
                                                             status={String(firmaUno?.status)}
                                                             dateSigner={String(firmaUno?.dateSigner)}
@@ -374,7 +384,7 @@ export default function ResposiveDoc({
                                         {/* FIRMA DOS EMPLEADO */}
                                         <Col xs={12} md={6}>
                                             <div className="border rounded-3 p-3 d-flex flex-column align-items-center gap-2 text-center h-100 w-100">
-                                                <span className="fw-semibold text-capitalize">{device.employee?.name} {device.employee?.lastName}</span>
+                                                <span className="fw-semibold text-capitalize">{assigneeName}</span>
                                                 <ConditionalRender cond={!!waiver?.employeePosition}>
                                                     <span className="small text-uppercase">{waiver?.employeePosition}</span>
                                                 </ConditionalRender>
@@ -407,7 +417,8 @@ export default function ResposiveDoc({
                                                             <SignatureDeviceThree
                                                                 key={`${firmaTres?.id}-${firmaTres?.url}`}
                                                                 idDevice={Number(device.id)}
-                                                                idEmployee={Number(firmaTres?.idSignatory)}
+                                                                idEmployee={isExternal ? 0 : Number(firmaTres?.idSignatory)}
+                                                            external={isExternal}
                                                                 idSignature={Number(firmaTres?.id)}
                                                                 status={String(firmaTres?.status)}
                                                                 dateSigner={String(firmaTres?.dateSigner)}
@@ -501,7 +512,7 @@ export default function ResposiveDoc({
                     onHide={() => setSignatureEmployee(false)
                     }
                     idDevice={device.id}
-                    idEmployee={Number(device.employee?.id)}
+                    idEmployee={employeeSignatoryId}
                     idSignature={
                         device.currentAssignment?.signatures?.find((s) => s.label === "Empleado - Recibido")?.id ?? 0
                     }
@@ -512,7 +523,7 @@ export default function ResposiveDoc({
                     onHide={() => setSignatureEmployeeTwo(false)
                     }
                     idDevice={device.id}
-                    idEmployee={Number(device.employee?.id)}
+                    idEmployee={employeeSignatoryId}
                     idSignature={
                         device.currentAssignment?.signatures?.find((s) => s.label === "Empleado - Entregado")?.id ?? 0
                     }

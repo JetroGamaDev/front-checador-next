@@ -1,6 +1,7 @@
 "use client"
 
-import { IDevices } from "@/lib/devices/interface";
+import { IDevices, IExternalPerson } from "@/lib/devices/interface";
+import { ExternalPersonSummary, externalPersonName } from "./ExternalPerson";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
@@ -164,8 +165,13 @@ export default function HistorialDevice({
                                             <i className="bi bi-person fs-3 text-info" />
                                         </div>
                                         <div className="fw-bold text-uppercase text-primary-emphasis">
-                                            {filtrados.employee.lastName} {filtrados.employee.name}
+                                            {filtrados.employee
+                                                ? `${filtrados.employee.lastName ?? ""} ${filtrados.employee.name ?? ""}`.trim()
+                                                : externalPersonName(filtrados.externalPerson) || "Sin registro"}
                                         </div>
+                                        <ConditionalRender cond={!filtrados.employee && !!filtrados.externalPerson}>
+                                            <ExternalPersonSummary person={filtrados.externalPerson as IExternalPerson} />
+                                        </ConditionalRender>
                                         <span className="badge rounded-pill mt-2 px-3 py-2 fw-semibold bg-white text-info border border-primary-subtle">
                                             {formatCreatedAt(filtrados.assignedAt)} - {formatCreatedAt(filtrados.returnedAt ?? undefined)}
                                         </span>

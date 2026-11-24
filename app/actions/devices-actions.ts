@@ -1,7 +1,7 @@
 "use server"
 
 import { FetchUsersArgs } from "@/lib/constancy/interface";
-import { IAssignDevice, IDevices, IUpdateCurrentUser, IWaiverContent } from "@/lib/devices/interface";
+import { IAssignDevice, IDevices, IExternalPerson, IUpdateCurrentUser, IWaiverContent } from "@/lib/devices/interface";
 import { storeAction } from "./storeActions";
 import axios from "axios";
 import { ActionResponse } from "@/lib/definitions";
@@ -32,6 +32,33 @@ function normalizeSpecs(specs: IDevices["specs"]): IDevices["specs"] {
       ? null
       : Number(rawValue);
   return { ...specs, imei: imei || null, value };
+}
+
+// Persona externa limpia (textos sin espacios de más; opcionales vacíos = null). Sin datos = null
+function cleanExternalPerson(person?: IExternalPerson | null): IExternalPerson | null {
+  if (!person) return null;
+  const text = (v?: string | null) => String(v ?? "").trim();
+  const clean = {
+    name: text(person.name),
+    lastName: text(person.lastName),
+    position: text(person.position),
+    department: text(person.department),
+    company: text(person.company) || null,
+    phone: text(person.phone) || null,
+    email: text(person.email) || null,
+  };
+  return clean.name || clean.lastName || clean.position || clean.department ? clean : null;
+}
+
+// Mensaje del back: en validación viene errors[0].message; a veces message es un arreglo
+function apiErrorMessage(error: unknown, fallback = "Error en la respuesta") {
+  if (axios.isAxiosError(error)) {
+    const body = error.response?.data;
+    const first = Array.isArray(body?.errors) ? body.errors[0]?.message : undefined;
+    const msg = body?.message;
+    return first || (Array.isArray(msg) ? msg.join(", ") : msg) || error.message || fallback;
+  }
+  return error instanceof Error ? error.message : fallback;
 }
 
 //LISTAR TODOS LOS DISPOSITIVOS
@@ -199,6 +226,9 @@ export async function createDevice({
       getPhoneString(String(data.currentAssignment?.phoneNumber))
     );
 
+    // Se manda solo uno: el empleado o la persona externa
+    const externalPerson = cleanExternalPerson(data.currentAssignment?.externalPerson);
+
     const device: IDevices = await axios
       .post(
         `${API_URL}/devices`,
@@ -209,7 +239,9 @@ export async function createDevice({
           networkInfo: data.networkInfo,
           specs: normalizeSpecs(data.specs),
           currentAssignment: {
-            idEmployee: data.currentAssignment?.idEmployee,
+            ...(externalPerson
+              ? { idEmployee: null, externalPerson }
+              : { idEmployee: data.currentAssignment?.idEmployee }),
             idBranch: data.currentAssignment?.idBranch,
             idDepartment: data.currentAssignment?.idDepartment,
             phoneNumber: sanitizedPhonePersonal,
@@ -233,10 +265,7 @@ export async function createDevice({
       .then((res) => res.data)
       .catch((err) => {
         console.log(err);
-        const msg = err.response?.data?.message;
-        throw new Error(
-          Array.isArray(msg) ? msg.join(", ") : msg || "Error en la respuesta"
-        );
+        throw new Error(apiErrorMessage(err));
       });
 
     revalidatePath("/app/devices");
@@ -282,10 +311,15 @@ export async function AssignDevice({
       getPhoneString(String(data.phoneNumber))
     );
 
+    // Se manda solo uno: el empleado o la persona externa
+    const externalPerson = cleanExternalPerson(data.externalPerson);
+
     await axios.put(
       `${API_URL}/devices-assignment/${idDevice}`,
       {
-        idEmployee: data.idEmployee,
+        ...(externalPerson
+          ? { idEmployee: null, externalPerson }
+          : { idEmployee: data.idEmployee }),
         idIt: data.idIt,
         idBranch: data.idBranch,
         idDepartment: data.idDepartment,
@@ -307,23 +341,15 @@ export async function AssignDevice({
 
     return {
       success: true,
-      message: "Empleado asignado correctamente",
+      message: externalPerson ? "Persona externa asignada correctamente" : "Empleado asignado correctamente",
       data: true,
     };
   } catch (error: unknown) {
     console.log(error);
 
-    let message = "Error en la respuesta";
-
-    if (axios.isAxiosError(error)) {
-      message = error.response?.data?.message || error.message || message;
-    } else if (error instanceof Error) {
-      message = error.message;
-    }
-
     return {
       success: false,
-      message,
+      message: apiErrorMessage(error),
       data: null,
     };
   }

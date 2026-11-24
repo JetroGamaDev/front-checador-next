@@ -20,6 +20,7 @@ function SignatureDeviceThree({
     idDevice,
     idEmployee,
     idSignature,
+    external = false,
     status,
     label,
     dateSigner,
@@ -27,6 +28,8 @@ function SignatureDeviceThree({
     idDevice: number;
     idEmployee: number;
     idSignature: number;
+    // Persona externa: su firma se consulta con idSignatory = 0
+    external?: boolean;
     dateSigner: string;
     status: string;
     label?: string;
@@ -36,7 +39,7 @@ function SignatureDeviceThree({
 
     useEffect(() => {
         const handleFetchSignature = async () => {
-            if (!idDevice || !idEmployee) {
+            if (!idDevice || (!idEmployee && !external)) {
                 setLoadingSignature(false);
                 return;
             }
@@ -61,7 +64,7 @@ function SignatureDeviceThree({
         };
 
         handleFetchSignature();
-    }, [idDevice, idSignature, idEmployee]);
+    }, [idDevice, idSignature, idEmployee, external]);
 
 
     const hasSigned = Boolean(imgUrl);

@@ -15,6 +15,7 @@ import { es } from "date-fns/locale";
 import { useModals } from "@/context/ModalContext";
 import { AssignDevice } from "@/app/actions/devices-actions";
 import { formatCreatedAt } from "@/lib/helpers";
+import { AssigneeType, AssigneeTypeToggle, ExternalPersonFields } from "./ExternalPerson";
 
 registerLocale("es", es);
 
@@ -40,6 +41,7 @@ export default function ModalAssignDevice({
 }: ModalBasicProps & ModalAction) {
     const {
         register,
+        unregister,
         handleSubmit,
         control,
         watch,
@@ -55,6 +57,19 @@ export default function ModalAssignDevice({
     const [feedback, setFeedback] = useState<FeedbackState>(null);
     const [dataSystem, setDataSystem] = useState<Employee[] | []>([]);
     const { modalConfirm } = useModals();
+    // Asignar a un empleado del sistema o a una persona externa
+    const [assigneeType, setAssigneeType] = useState<AssigneeType>("employee");
+
+    // Al cambiar de opción se limpian los datos de la otra
+    const handleAssigneeType = (type: AssigneeType) => {
+        if (type === assigneeType) return;
+        setAssigneeType(type);
+        if (type === "external") {
+            setValue("idEmployee", null);
+        } else {
+            unregister("externalPerson");
+        }
+    };
 
     //Fecha
     const dateButtonRef = useRef(null);
@@ -102,7 +117,8 @@ export default function ModalAssignDevice({
                 const res = await AssignDevice({
                     idDevice: idDevice,
                     data: {
-                        idEmployee: data.idEmployee,
+                        idEmployee: assigneeType === "employee" ? data.idEmployee : null,
+                        externalPerson: assigneeType === "external" ? data.externalPerson : null,
                         idIt: data.idIt,
                         idBranch: data.idBranch,
                         idDepartment: data.idDepartment,
@@ -184,17 +200,28 @@ export default function ModalAssignDevice({
                                         <i className="bi bi-person-check text-primary" />
                                         Empleado asignado
                                     </label>
-                                    <RelationField
-                                        options={employees.map((e) => ({
-                                            id: Number(e.id) || 0,
-                                            displayName: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}` || "",
-                                            name: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}`,
-                                        }))}
-                                        register={register("idEmployee")}
-                                        control={control}
-                                        callBackMode="id"
-                                        label=""
-                                    />
+                                    <AssigneeTypeToggle value={assigneeType} onChange={handleAssigneeType} />
+
+                                    <ConditionalRender cond={assigneeType === "employee"}>
+                                        <RelationField
+                                            options={employees.map((e) => ({
+                                                id: Number(e.id) || 0,
+                                                displayName: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}` || "",
+                                                name: `${e.lastName?.toUpperCase()} ${e.name?.toUpperCase()}`,
+                                            }))}
+                                            register={register("idEmployee")}
+                                            control={control}
+                                            callBackMode="id"
+                                            label=""
+                                        />
+                                    </ConditionalRender>
+
+                                    <ConditionalRender cond={assigneeType === "external"}>
+                                        <ExternalPersonFields
+                                            reg={(field, rules) => register(`externalPerson.${field}`, rules)}
+                                            errorOf={(field) => errors.externalPerson?.[field]?.message}
+                                        />
+                                    </ConditionalRender>
                                 </Card.Body>
                             </Card>
                         </Col>

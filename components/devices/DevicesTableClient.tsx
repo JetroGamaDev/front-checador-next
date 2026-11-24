@@ -1,6 +1,7 @@
 "use client"
 
 import { IDevices } from "@/lib/devices/interface";
+import { externalPersonName } from "./ExternalPerson";
 import { TableTemplateColumn } from "../templates/TableTemplate";
 import { Button, Card, Col, Container, Dropdown, InputGroup, Pagination, Row } from "react-bootstrap";
 import ListView from "../templates/ListView";
@@ -413,11 +414,20 @@ export default function DevicesTableClient({
         {
             key: "employee",
             label: "Empleado Responsable",
-            accessor: (u) => u.employee?.name,
+            accessor: (u) => u.employee?.name ?? u.currentAssignment?.externalPerson?.name,
             filterable: false,
             type: "string",
             render: (u) => (
-                <div className="text-uppercase">{u.employee?.lastName} {u.employee?.name}</div>
+                u.employee || !u.currentAssignment?.externalPerson
+                    ? <div className="text-uppercase">{u.employee?.lastName} {u.employee?.name}</div>
+                    : (
+                        <div className="d-flex flex-wrap align-items-center gap-2">
+                            <span className="text-uppercase">{externalPersonName(u.currentAssignment.externalPerson)}</span>
+                            <span className="badge rounded-pill px-2 py-1 fw-semibold bg-orange-subtle text-orange-emphasis border border-orange-subtle">
+                                Externo
+                            </span>
+                        </div>
+                    )
             ),
         },
         {

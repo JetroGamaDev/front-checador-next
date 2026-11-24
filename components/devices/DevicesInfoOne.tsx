@@ -1,6 +1,7 @@
 "use client"
 
-import { IDevices } from "@/lib/devices/interface"
+import { IDevices, IExternalPerson } from "@/lib/devices/interface"
+import { ExternalPersonSummary, externalPersonName } from "./ExternalPerson";
 import { Button, Card, Col, Collapse, Container, Row } from "react-bootstrap"
 import OverLay from "../templates/OverLay"
 import { useEffect, useState } from "react";
@@ -662,8 +663,13 @@ export function DeviceOne({
                                             <div className="fw-bold text-uppercase text-primary-emphasis">
                                                 {device?.employee
                                                     ? `${device.employee.lastName ?? ""} ${device.employee.name ?? ""}`.trim()
-                                                    : "Sin empleado asignado"}
+                                                    : device?.currentAssignment?.externalPerson
+                                                        ? externalPersonName(device.currentAssignment.externalPerson)
+                                                        : "Sin empleado asignado"}
                                             </div>
+                                            <ConditionalRender cond={!device?.employee && !!device?.currentAssignment?.externalPerson}>
+                                                <ExternalPersonSummary person={device?.currentAssignment?.externalPerson as IExternalPerson} />
+                                            </ConditionalRender>
 
                                             <Button
                                                 className="hover-clickable mt-2"

@@ -77,6 +77,8 @@ export interface IDevices {
         documentReceived?: string | null;
         assignedAt?: string | null;
         returnedAt?: string | null;
+        // Practicante u otra persona fuera del sistema (entonces no viene `employee`)
+        externalPerson?: IExternalPerson | null;
     }
 
     assignmentHistory?: {
@@ -109,7 +111,9 @@ export interface IDevices {
         assignedAt: string;
         returnedAt: string | null;
 
-        employee: {
+        externalPerson?: IExternalPerson | null;
+
+        employee?: {
             id: number;
             name: string;
             lastName: string;
@@ -171,10 +175,23 @@ export interface IWaiverContent {
     rows: { label: string; value: string | null }[];
     clauses: { title: string; text: string }[];
     hasPhoneLine?: boolean;
+    isExternal?: boolean;
+}
+
+// Persona externa asignada a un dispositivo (no está en el sistema)
+export interface IExternalPerson {
+    name: string;
+    lastName: string;
+    position: string;
+    department: string;
+    company?: string | null;
+    phone?: string | null;
+    email?: string | null;
 }
 
 export interface IAssignDevice {
-    idEmployee: number;
+    idEmployee: number | null;
+    externalPerson?: IExternalPerson | null;
     idIt: number;
     idBranch: number;
     idDepartment: number;
