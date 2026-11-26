@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button, Card, Col, Container, InputGroup, Overlay, Pagination, Row } from "react-bootstrap";
+import { Button, Card, Col, Container, InputGroup, Overlay, OverlayTrigger, Pagination, Row, Tooltip } from "react-bootstrap";
 import ListView from "../templates/ListView";
 import { TableTemplateColumn } from "../templates/TableTemplate";
 
@@ -604,7 +604,16 @@ export default function PermissionsTableClient({
                                   </ConditionalRender>
                                   {/* Aprobada y propia: ya no la elimina el empleado */}
                                   <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, row) && row.leaderApproval === "APPROVED"}>
-                                      <span className="small text-muted">Para cancelarla acude a DOH</span>
+                                      <OverlayTrigger
+                                        placement="top"
+                                        overlay={<Tooltip id={`doh-tooltip-${row.id}`}>Para cancelarla acude a DOH</Tooltip>}
+                                      >
+                                        <i
+                                          className="bi bi-info-circle-fill text-info fs-5"
+                                          style={{ cursor: "help" }}
+                                          aria-label="Para cancelarla acude a DOH"
+                                        />
+                                      </OverlayTrigger>
                                   </ConditionalRender>
                                 </div>
                               </td>

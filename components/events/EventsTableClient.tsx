@@ -797,7 +797,7 @@ export default function EvenstsTableClient({
                                                             </th>
                                                         ))}
                                                         <th className="text-center fw-bold">
-                                                            Detalles
+                                                            Acciones
                                                         </th>
                                                     </tr>
                                                 </thead>

@@ -175,7 +175,7 @@ export default function CreatePenaltyComponent({
                                         <Col key={row.id} md={4}>
                                             <Card className="m-1 p-2 d-flex flex-row align-items-center gap-2">
                                                 <i className="bi bi-calendar text-danger" />
-                                                {getDate(row.createdAt)}
+                                                {getDate(row.dateOfAbsence)}
                                             </Card>
                                         </Col>
                                     ))}

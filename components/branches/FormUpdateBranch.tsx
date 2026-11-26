@@ -133,7 +133,7 @@ export default function FormUpdateBranch({
           </div>
 
           <span className="badge rounded-pill px-3 py-2 fw-semibold bg-info-subtle text-info-emphasis border border-info-subtle">
-            Nuevo
+            Actualizar
           </span>
         </div>
 

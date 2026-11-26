@@ -219,19 +219,21 @@ export default function UserTableClient({
     {
       key: "gender",
       label: "Género",
-      accessor: (u) => u.gender,
+      align: "center",
+      accessor: (u) => <div className="text-center">{u.gender}</div>,
       filterable: true,
       type: "string",
     },
     {
       key: "permissions",
       label: "Permisos",
+      align: "center",
       accessor: (u) => u.permissions.length,
       filterable: false,
       type: "number",
       render: (u) => (
         <div onClick={(e) => e.stopPropagation()}>
-          <Form className="text-uppercase shadow-none border-0">
+          <Form className="text-uppercase shadow-none border-0 text-center">
             <option>{u.permissions.length}</option>
             {/* {u.permissions.map((p) => (
               <option key={`${p.id}-${p.text}`}>
@@ -318,7 +320,7 @@ export default function UserTableClient({
                                 {column.label}
                               </th>
                             ))}
-                            <th className="fw-bold">Detalles</th>
+                            <th className="fw-bold">Acciones</th>
                           </tr>
                         </thead>
 

@@ -286,10 +286,6 @@ export default function ShowInfoVacation({
                   </Button>
                 </OverLay>
             </ConditionalRender>
-            {/* Aprobada y propia: ya no la elimina el empleado */}
-            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, vacation) && vacation?.leaderApproval === "APPROVED"}>
-                <span className="small text-muted align-self-center">Para cancelarla acude a DOH</span>
-            </ConditionalRender>
             {/* </ConditionalRender> */}
 
             <ConditionalRender cond={showEmployeeSign}>
@@ -341,6 +337,17 @@ export default function ShowInfoVacation({
                   <i className="bi bi-filetype-pdf" />
                   <span className="d-none d-md-inline ms-2">Descargar</span>
                 </Button>
+              </OverLay>
+            </ConditionalRender>
+
+            {/* Aprobada y propia: ya no la elimina el empleado */}
+            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, vacation) && vacation?.leaderApproval === "APPROVED"}>
+              <OverLay string="Para cancelarla acude a DOH" placement="top">
+                <i
+                  className="bi bi-info-circle-fill text-info fs-4 align-self-center"
+                  style={{ cursor: "help" }}
+                  aria-label="Para cancelarla acude a DOH"
+                />
               </OverLay>
             </ConditionalRender>
           </div>

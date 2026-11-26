@@ -456,6 +456,7 @@ export default function AbsencesTableClient({
         {
             key: "dateOfAbsence",
             label: "Fecha del registro",
+            align: "center",
             accessor: (e) => e.dateOfAbsence,
             filterable: true,
             type: "string",
@@ -712,7 +713,7 @@ export default function AbsencesTableClient({
                                                             </th>
                                                         ))}
                                                         <th className="text-center fw-bold">
-                                                            Detalles
+                                                            Acciones
                                                         </th>
                                                     </tr>
                                                 </thead>

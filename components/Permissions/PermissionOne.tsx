@@ -21,7 +21,6 @@ import { formatCreatedAt, formatCreatedAtOnlyHours, formatDateMx } from "@/lib/h
 import { IPermissionRequest } from "@/lib/permissions/interface";
 import ModalBlur from "../ModalBlur";
 import DeletePermissionModal from "./DeleteModal";
-import WithPayBadge from "./WithPayBadge";
 
 
 function fullName(p?: { name?: string; lastName?: string } | null) {
@@ -208,10 +207,6 @@ export default function ShowInfoPermissionRequest({
                   </Button>
                 </OverLay>
             </ConditionalRender>
-            {/* Aprobada y propia: ya no la elimina el empleado */}
-            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, permission) && permission?.leaderApproval === "APPROVED"}>
-                <span className="small text-muted align-self-center">Para cancelarla acude a DOH</span>
-            </ConditionalRender>
 
             <ConditionalRender cond={showEmployeeSign}>
               <OverLay string="Firmar">
@@ -264,6 +259,17 @@ export default function ShowInfoPermissionRequest({
                 </Button>
               </OverLay>
             </ConditionalRender>
+
+            {/* Aprobada y propia: ya no la elimina el empleado */}
+            <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, permission) && permission?.leaderApproval === "APPROVED"}>
+              <OverLay string="Para cancelarla acude a DOH" placement="top">
+                <i
+                  className="bi bi-info-circle-fill text-info fs-4 align-self-center"
+                  style={{ cursor: "help" }}
+                  aria-label="Para cancelarla acude a DOH"
+                />
+              </OverLay>
+            </ConditionalRender>
           </div>
 
           <div className=" d-md-flex flex-wrap">
@@ -300,7 +306,6 @@ export default function ShowInfoPermissionRequest({
               </div>
 
               <div className="d-flex flex-wrap align-items-center justify-content-end gap-2">
-                <WithPayBadge withPay={permission.withPay} showUndefined />
                 {statusVariant(overallStatus)}
               </div>
 
@@ -364,6 +369,25 @@ export default function ShowInfoPermissionRequest({
                         </div>
                         <span className="fw-semibold text-end">
                           {fullName(permission.personDoh)}
+                        </span>
+                      </div>
+
+                      {/* Goce de sueldo: lo define DOH al aprobar */}
+                      <div className="d-flex align-items-center justify-content-between border-bottom pb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <i className="bi bi-cash-coin text-success" />
+                          <span className="text-muted">Con goce de sueldo</span>
+                        </div>
+                        <span
+                          className={`fw-semibold text-end ${
+                            permission.withPay === true
+                              ? "text-success"
+                              : permission.withPay === false
+                                ? "text-danger"
+                                : "text-muted"
+                          }`}
+                        >
+                          {permission.withPay === true ? "Sí" : permission.withPay === false ? "No" : "Sin definir"}
                         </span>
                       </div>
 

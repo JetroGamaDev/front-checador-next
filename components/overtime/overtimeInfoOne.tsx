@@ -226,10 +226,6 @@ export function OvertimeOne({
                                 </Button>
                             </OverLay>
                         </ConditionalRender>
-                        {/* Aprobada y propia: ya no la elimina el empleado */}
-                        <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, overtime) && overtime?.leaderApproval === "APPROVED"}>
-                            <span className="small text-muted align-self-center">Para cancelarla acude a DOH</span>
-                        </ConditionalRender>
 
                         <OverLay string="Firmar">
                             <ConditionalRender cond={showCurrentUser}>
@@ -281,6 +277,17 @@ export function OvertimeOne({
                                 </Button>
                             </ConditionalRender>
                         </OverLay>
+
+                        {/* Aprobada y propia: ya no la elimina el empleado */}
+                        <ConditionalRender cond={isOwnIncidenceDeleteLocked(authSession?.user, overtime) && overtime?.leaderApproval === "APPROVED"}>
+                            <OverLay string="Para cancelarla acude a DOH" placement="top">
+                                <i
+                                    className="bi bi-info-circle-fill text-info fs-4 align-self-center"
+                                    style={{ cursor: "help" }}
+                                    aria-label="Para cancelarla acude a DOH"
+                                />
+                            </OverLay>
+                        </ConditionalRender>
 
                     </div>
 
