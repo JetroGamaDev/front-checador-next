@@ -14,6 +14,8 @@ import AlertSignaturesPenalty from "./AlertSignatures";
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
 import ModalBlur from "../ModalBlur";
 import DeletePenaltyModal from "./DeletePenaltyModal";
+import SubManagerSignatureCell from "../SubManagerSignatureCell";
+import { isSubManagerListRow } from "@/lib/leaderSignature";
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
@@ -319,6 +321,17 @@ export default function PenaltiesTableClient({
                 );
                 const cancelado = row.delete?.delete === true;
 
+                // Subgerente: la casilla "Líder" puede firmarla él o el líder (sin paso de aprobación)
+                if (!mySignature && isSubManagerListRow({
+                    isSubManager: roles?.isSubManager,
+                    meId: idEmployee,
+                    ownerId: row.idEmployee ?? row.employee?.id,
+                    signatures: row.signatures,
+                })) {
+                    return cancelado
+                        ? <i className="bi bi-slash-circle ms-4" />
+                        : <SubManagerSignatureCell meId={idEmployee} signatures={row.signatures} />;
+                }
 
                 if (!mySignature) {
                     return (

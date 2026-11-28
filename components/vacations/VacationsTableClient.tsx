@@ -16,6 +16,8 @@ import { formatCreatedAt } from "@/lib/helpers";
 import { Vacations } from "@/lib/vactions/interface";
 import ModalBlur from "../ModalBlur";
 import DeleteVacationModal from "./DeleteVactionsModal";
+import SubManagerSignatureCell from "../SubManagerSignatureCell";
+import { isSubManagerListRow } from "@/lib/leaderSignature";
 import DatePicker from "react-datepicker";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import moment from "moment";
@@ -310,6 +312,25 @@ export default function VacationsTableClient({
         );
         const cancelado = row.delete?.delete === true;
 
+        // Subgerente: la casilla "Líder" puede firmarla él o el líder
+        if (!mySignature && isSubManagerListRow({
+          isSubManager: session?.uid?.roles?.isSubManager,
+          meId: idEmployee,
+          ownerId: row.idEmployee ?? row.employee?.id,
+          signatures: row.signatures,
+        })) {
+          return cancelado
+            ? <i className="bi bi-slash-circle ms-4" />
+            : (
+              <SubManagerSignatureCell
+                meId={idEmployee}
+                signatures={row.signatures}
+                leaderApproval={row.leaderApproval}
+                leaderApprovedBy={row.leaderApprovedBy}
+                leaderApprovedByRole={row.leaderApprovedByRole}
+              />
+            );
+        }
 
         if (!mySignature) {
           return (
@@ -381,7 +402,7 @@ export default function VacationsTableClient({
       }
     },
   ],
-    [idEmployee]
+    [idEmployee, session?.uid?.roles?.isSubManager]
   );
 
   const handleCreate = () => {

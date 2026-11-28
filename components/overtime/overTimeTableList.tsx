@@ -16,6 +16,8 @@ import AlertSignatures from "./AlertSignatures";
 import { formatCreatedAt, formatParseHours } from "@/lib/helpers";
 import ModalBlur from "../ModalBlur";
 import DeleteOvertimeModal from "./DeleteOvertimeModal";
+import SubManagerSignatureCell from "../SubManagerSignatureCell";
+import { isSubManagerListRow } from "@/lib/leaderSignature";
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
@@ -359,6 +361,25 @@ export default function OverTimeTableClient({
                 );
                 const cancelado = row.delete?.delete === true;
 
+                // Subgerente: la casilla "Líder" puede firmarla él o el líder
+                if (!mySignature && isSubManagerListRow({
+                    isSubManager: session?.uid?.roles?.isSubManager,
+                    meId: idEmployee,
+                    ownerId: row.idEmployee ?? row.employee?.id,
+                    signatures: row.signatures,
+                })) {
+                    return cancelado
+                        ? <i className="bi bi-slash-circle ms-4" />
+                        : (
+                            <SubManagerSignatureCell
+                                meId={idEmployee}
+                                signatures={row.signatures}
+                                leaderApproval={row.leaderApproval}
+                                leaderApprovedBy={row.leaderApprovedBy}
+                                leaderApprovedByRole={row.leaderApprovedByRole}
+                            />
+                        );
+                }
 
                 if (!mySignature) {
                     return (

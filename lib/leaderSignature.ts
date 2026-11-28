@@ -34,6 +34,28 @@ export function findLeaderSignature<T extends { label?: string }>(signatures?: T
   return signatures?.find((s) => isLeaderLabel(s.label)) ?? null;
 }
 
+/**
+ * Listados: la sesión es de subgerente y la fila es de otra persona con casilla "Líder".
+ * El back solo le lista al subgerente las incidencias de su departamento (o las que él resolvió),
+ * así que no hace falta `idSubManager` por fila.
+ */
+export function isSubManagerListRow({
+  isSubManager,
+  meId,
+  ownerId,
+  signatures,
+}: {
+  isSubManager?: boolean;
+  meId: number;
+  ownerId?: number | null;
+  signatures?: { label?: string }[] | null;
+}) {
+  return !!isSubManager
+    && ownerId != null
+    && Number(ownerId) !== meId
+    && !!findLeaderSignature(signatures);
+}
+
 export function subManagerName(sub?: ISubManagerRef | null) {
   if (!sub) return "";
   return `${sub.name ?? ""} ${sub.lastName ?? ""}`.trim();

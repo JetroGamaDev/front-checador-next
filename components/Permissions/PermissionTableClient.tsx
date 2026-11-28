@@ -21,6 +21,8 @@ import DatePicker from "react-datepicker";
 import GenericSearchInput from "../employee/GenericSearchInput";
 import moment from "moment";
 import WithPayBadge from "./WithPayBadge";
+import SubManagerSignatureCell from "../SubManagerSignatureCell";
+import { isSubManagerListRow } from "@/lib/leaderSignature";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -302,6 +304,25 @@ export default function PermissionsTableClient({
         );
         const cancelado = row.delete?.delete === true;
 
+        // Subgerente: la casilla "Líder" puede firmarla él o el líder
+        if (!mySignature && isSubManagerListRow({
+          isSubManager: session?.uid?.roles?.isSubManager,
+          meId: idEmployee,
+          ownerId: row.employee?.id,
+          signatures: row.signatures,
+        })) {
+          return cancelado
+            ? <i className="bi bi-slash-circle ms-4" />
+            : (
+              <SubManagerSignatureCell
+                meId={idEmployee}
+                signatures={row.signatures}
+                leaderApproval={row.leaderApproval}
+                leaderApprovedBy={row.leaderApprovedBy}
+                leaderApprovedByRole={row.leaderApprovedByRole}
+              />
+            );
+        }
 
         if (!mySignature) {
           return (
