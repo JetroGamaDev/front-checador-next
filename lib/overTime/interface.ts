@@ -1,4 +1,6 @@
-export interface OverTime {
+import { ILeaderSlotFields } from "../leaderSignature";
+
+export interface OverTime extends ILeaderSlotFields {
     _id?: string;
     id: number
     idEmployee: number;
@@ -98,4 +100,7 @@ export interface ISignatures {
     signature?: string;
     dateApproved?: string;
     dateSigner?: string;
+    // Solo en la firma "Líder": quién subió la imagen (el idSignatory sigue siendo el del líder)
+    signedBy?: number | null;
+    signedByRole?: "LEADER" | "SUBMANAGER" | null;
 }

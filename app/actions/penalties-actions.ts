@@ -10,6 +10,7 @@ import { FetchUsersArgs } from "@/lib/constancy/interface";
 import { storeToken } from "@/lib/useToken";
 import { base64ToBlob } from "@/lib/helpers";
 import { revalidatePath } from "next/cache";
+import { axiosErrorInfo } from "@/lib/leaderSignature";
 
 //Funcion para crear penalizacion
 export async function createPenalty({
@@ -214,12 +215,11 @@ export async function sendSignaturePenalty({
 
         formData.append("img", blob, "signature.png");
 
-        const firma = await axios.post(`${apiUrl}/penaltyForOffeses/signature/${id}`, formData, {
+        await axios.post(`${apiUrl}/penaltyForOffeses/signature/${id}`, formData, {
             headers: {
                 Authorization: `Bearer ${apiToken}`,
             },
         });
-        console.log("firma: ", firma);
 
         return {
             success: true,
@@ -227,11 +227,13 @@ export async function sendSignaturePenalty({
             data: true,
         };
     } catch (error: unknown) {
-        const err = error as Error;
+        // Mensaje del back y código (409 = la firma del líder ya fue registrada)
+        const { message, status } = axiosErrorInfo(error, "Error al obtener información");
 
         return {
             success: false,
-            message: err.message ? err.message : "Error al obtener información",
+            message,
+            status,
             data: false,
         };
     }

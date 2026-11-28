@@ -7,6 +7,7 @@ import { storeToken } from "@/lib/useToken";
 import { revalidatePath } from "next/cache";
 import { base64ToBlob } from "@/lib/helpers";
 import { fetchPagedWithoutCancelled, isOnlyEmployee } from "@/lib/employeeVisibility";
+import { axiosErrorInfo, toApiActionError } from "@/lib/leaderSignature";
 import { IUpdateVacation, PeriodVacation, Vacations } from "@/lib/vactions/interface";
 
 // export async function fetchVacations(): Promise<Vacations[]> {
@@ -388,11 +389,13 @@ export async function sendSignatureVacations({
       data: true,
     };
   } catch (error: unknown) {
-    const err = error as Error;
+    // Mensaje del back y código (409 = la firma del líder ya fue registrada)
+    const { message, status } = axiosErrorInfo(error, "Error al obtener información");
 
     return {
       success: false,
-      message: err.message ? err.message : "Error al obtener información",
+      message,
+      status,
       data: false,
     };
   }
@@ -486,11 +489,8 @@ export async function approvedVacation({
         return res.data;
       })
       .catch((err) => {
-        throw new Error(
-          err.response.data.message
-            ? err.response.data.message
-            : "Error en la respuesta"
-        );
+        // Conserva el código: 409 = el líder o el subgerente ya resolvió la casilla
+        throw toApiActionError(err);
       });
 
     const datax = new FormData();
@@ -515,11 +515,7 @@ export async function approvedVacation({
         return res.data;
       })
       .catch((err) => {
-        throw new Error(
-          err.response.data.message
-            ? err.response.data.message
-            : "Error en la respuesta"
-        );
+        throw toApiActionError(err);
       });
 
     revalidatePath("/app/vacations");
@@ -535,6 +531,7 @@ export async function approvedVacation({
     return {
       success: false,
       message: error.message,
+      status: error.status,
     };
   }
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Card, Col } from "react-bootstrap";
 import Image from "next/image";
 import { fetchSignatureOverTime } from "@/app/actions/overtime-actions";
@@ -22,7 +22,10 @@ function SignaturesViewOvertime({
   name,
   label,
   status,
+  footerExtra,
 }: {
+  // Texto extra bajo el nombre (casilla "Líder": subgerente)
+  footerExtra?: ReactNode;
   id: number | null;
   idEmployee: string | null;
   name: string;
@@ -141,6 +144,7 @@ function SignaturesViewOvertime({
 
         <Card.Footer className="text-center fw-semibold text-uppercase small text-break">
           {name}
+          {footerExtra}
         </Card.Footer>
       </Card>
     </Col >

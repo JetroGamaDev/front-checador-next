@@ -3,7 +3,7 @@
 import { fetchSignature } from "@/app/actions/permissions-actions";
 import { PermissionRequestStatus } from "@/lib/permissions/interface";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Card, Col } from "react-bootstrap";
 
 const BADGE_BASE = "badge rounded-pill px-3 py-2 fw-semibold border";
@@ -22,7 +22,10 @@ function SignaturesView({
   name,
   status,
   label,
+  footerExtra,
 }: {
+  // Texto extra bajo el nombre (casilla "Líder": subgerente)
+  footerExtra?: ReactNode;
   idPermission: string | null;
   idEmployee: string | null;
   name: string;
@@ -131,6 +134,7 @@ function SignaturesView({
 
         <Card.Footer className="text-center fw-semibold text-uppercase small text-break">
           {name}
+          {footerExtra}
         </Card.Footer>
       </Card>
     </Col>

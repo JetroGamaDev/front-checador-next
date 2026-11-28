@@ -34,6 +34,8 @@ import ErrorOverlay from "../ErrorOverlay";
 import { PeriodVacation, Vacations } from "@/lib/vactions/interface";
 import ModalBlur from "../ModalBlur";
 import DeleteVacationModal from "./DeleteVactionsModal";
+import { canUploadLeaderSignature, findLeaderSignature, isLeaderLabel } from "@/lib/leaderSignature";
+import LeaderSlotNote from "../LeaderSlotNote";
 
 type FeedbackState = "loading" | "success" | "error" | null;
 
@@ -102,6 +104,7 @@ export default function ShowInfoVacation({
   const [signatureDohModal, setSignatureDohModal] = useState(false);
   const [vacationPDFModal, setVacationPDFModal] = useState(false);
   const [employeeSignatureModal, setEmployeeSignatureModal] = useState(false);
+  const [leaderSignatureModal, setLeaderSignatureModal] = useState(false);
   const [, setPeriods] = useState<PeriodVacation[]>([]);
   const [feedbackMsg] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -152,13 +155,40 @@ export default function ShowInfoVacation({
     return sign?.url !== "";
   };
 
+  // ===== Casilla "Líder": la resuelve el líder o el subgerente (solo uno) =====
+  const leaderSig = useMemo(() => findLeaderSignature(signatures), [signatures]);
+  const isOwnRecord = idEmployee === overtimeEmployeeId;
+  const isLeaderOfRecord = !!leaderSig && Number(leaderSig.idSignatory) === idEmployee;
+  // El back manda idSubManager = null cuando la incidencia es del propio subgerente
+  const isSubManagerOfRecord = !!roles?.isSubManager
+    && vacation?.idSubManager != null
+    && Number(vacation.idSubManager) === idEmployee;
+  const leaderPending = vacation?.leaderApproval === "PENDING";
+  const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
+    || vacation?.leaderApprovedByRole === "SUBMANAGER";
+
   const showLeaderApprove = useMemo(() => {
-    return (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
-      && idEmployee !== overtimeEmployeeId
+    const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
       && !!currentSignature
-      && hasNotSigned
-      && isPending;
-  }, [session, idEmployee, overtimeEmployeeId, currentSignature, hasNotSigned, isPending]);
+      && hasNotSigned;
+
+    return leaderPending
+      && !isOwnRecord
+      && isPending
+      && (leaderOrExtra || isSubManagerOfRecord);
+  }, [session, currentSignature, hasNotSigned, isPending, leaderPending, isOwnRecord, isSubManagerOfRecord]);
+
+  // Ya aprobada/rechazada pero sin imagen: solo quien la aprobó sube la firma "Líder"
+  const showLeaderSign = canUploadLeaderSignature({
+    meId: idEmployee,
+    isOwn: isOwnRecord,
+    isLeaderOfRecord,
+    leaderPending,
+    leaderSigned: !!leaderSig?.url,
+    hasLeaderSignature: !!leaderSig,
+    leaderApprovedBy: vacation?.leaderApprovedBy,
+    leaderApprovedByRole: vacation?.leaderApprovedByRole,
+  });
 
   const showDohApprove =
     session?.uid?.idEmployee === vacation?.idPersonDoh &&
@@ -310,6 +340,19 @@ export default function ShowInfoVacation({
                 >
                   <i className="bi bi-check-circle" />
                   <span className="d-none d-md-inline ms-2">Aprobar</span>
+                </Button>
+              </OverLay>
+            </ConditionalRender>
+
+            <ConditionalRender cond={showLeaderSign}>
+              <OverLay string="Firmar como líder">
+                <Button
+                  className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 btn-needs-signature"
+                  variant="success"
+                  onClick={() => setLeaderSignatureModal(true)}
+                >
+                  <i className="bi bi-pen-fill" />
+                  <span className="d-none d-md-inline ms-2">Firmar como líder</span>
                 </Button>
               </OverLay>
             </ConditionalRender>
@@ -600,6 +643,13 @@ export default function ShowInfoVacation({
                           name={sign.name}
                           status={sign.status}
                           label={sign.label}
+                          footerExtra={isLeaderLabel(sign.label) ? (
+                            <LeaderSlotNote
+                              pending={leaderPending && !sign.url}
+                              bySubManager={leaderBySubManager}
+                              subManager={vacation.subManager}
+                            />
+                          ) : undefined}
                         />
                       ))}
                     </Row>
@@ -617,6 +667,15 @@ export default function ShowInfoVacation({
         idPeriod={Number(vacation?.idPeriod)}
         onHide={() => setEmployeeSignatureModal(false)}
         id={String(vacation.id)}
+      />
+
+      {/* Misma subida de firma: el back la coloca en la casilla "Líder" según quién aprobó */}
+      <SignatureEmployeeModal
+        show={leaderSignatureModal}
+        idPeriod={Number(vacation?.idPeriod)}
+        onHide={() => setLeaderSignatureModal(false)}
+        id={String(vacation.id)}
+        title="Firma del líder"
       />
       <ApproveVacationLeaderModal
         id={String(vacation.id)}

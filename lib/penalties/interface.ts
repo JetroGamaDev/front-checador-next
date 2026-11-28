@@ -1,8 +1,12 @@
 import { IChecks } from "../absences/interface";
+import { ISubManagerRef } from "../leaderSignature";
 
 export interface IPenaltyForOffeses {
     _id?: string;
     id: number;
+    // Subgerente que hoy puede firmar la casilla "Líder" (null si no aplica o en registros viejos)
+    idSubManager?: number | null;
+    subManager?: ISubManagerRef | null;
     idEmployee: number;
     createFor: number;
     idsAbsencesAndAttendances: number[];
@@ -59,6 +63,9 @@ export interface ISignaturesPenalties {
     status: string;
     label: string;
     sendNotify: boolean;
+    // Solo en la firma "Líder": quién subió la imagen
+    signedBy?: number | null;
+    signedByRole?: "LEADER" | "SUBMANAGER" | null;
 }
 
 interface IAbsencesAndAttendances {

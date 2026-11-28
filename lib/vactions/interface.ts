@@ -1,6 +1,7 @@
 import { ISignatures } from "../overTime/interface";
+import { ILeaderSlotFields } from "../leaderSignature";
 
-export interface Vacations {
+export interface Vacations extends ILeaderSlotFields {
     _id: string;
     id: number;
     idEmployee: number | null;

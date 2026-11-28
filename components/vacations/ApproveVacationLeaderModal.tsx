@@ -40,6 +40,8 @@ function ApproveVacationLeaderModal({
   const [, setMessageLoading] = useState("");
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  // 409: el líder o el subgerente ya resolvió la casilla; al cerrar el aviso se recarga el detalle
+  const [conflict, setConflict] = useState(false);
 
   const handleOnExited = () => {
     reset({ status: "", signature: "" });
@@ -63,6 +65,7 @@ function ApproveVacationLeaderModal({
         });
 
         if (!res.success) {
+          setConflict(res.status === 409);
           setFeedbackMsg(res.message || "No se pudo mandar la firma");
           setFeedback("error");
           return;
@@ -106,7 +109,14 @@ function ApproveVacationLeaderModal({
       <ConditionalRender cond={feedback === "error"}>
         <ErrorOverlay
           message={feedbackMsg}
-          onDone={() => setFeedback(null)}
+          onDone={() => {
+            setFeedback(null);
+            if (conflict) {
+              setConflict(false);
+              onHide();
+              router.refresh();
+            }
+          }}
         />
       </ConditionalRender>
 

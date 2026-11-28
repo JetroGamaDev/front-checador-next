@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Card, Col } from "react-bootstrap";
 import { fetchVacationSignature } from "@/app/actions/vacations-actions";
 import { VacationRequestStatus } from "@/lib/vactions/interface";
@@ -23,8 +23,11 @@ function SignaturesVacationView({
   idEmployee,
   name,
   status,
-  label
+  label,
+  footerExtra,
 }: {
+  // Texto extra bajo el nombre (casilla "Líder": subgerente)
+  footerExtra?: ReactNode;
   idSolicitud: number | null;
   idPeriod: number | null;
   idEmployee: number | null;
@@ -142,6 +145,7 @@ function SignaturesVacationView({
 
         <Card.Footer className="text-center fw-semibold text-uppercase small text-break">
           {name}
+          {footerExtra}
         </Card.Footer>
       </Card>
     </Col >

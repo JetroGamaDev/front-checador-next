@@ -382,6 +382,12 @@
   background-color: transparent !important;
 }
 
+.btn-outline-purple.disabled {
+  color: #fff !important;
+  border-color: #fff !important;
+  background-color: transparent !important;
+}
+
 .no-native-invalid-icon.is-invalid {
   background-image: none !important;
   padding-right: 2.25rem !important;
@@ -438,6 +444,39 @@
   --bs-btn-color: #fff !important;      /* ahora sí cumple 4.5:1 con blanco */
   --bs-btn-hover-bg: #06616f !important;
 }
+
+.btn-purple {
+  --bs-btn-bg: #6a3d99 !important;
+  --bs-btn-border-color: #6a3d99 !important;
+  --bs-btn-color: #fff !important;
+  
+  /* Variables para el estado hover */
+  --bs-btn-hover-bg: #4b1c73 !important;
+  --bs-btn-hover-border-color: #4b1c73 !important;
+  --bs-btn-hover-color: #fff !important;
+
+  /* Opcional: evita que vuelva a negro al hacer clic (active) o enfocar (focus) */
+  --bs-btn-active-bg: #3d165e !important;
+  --bs-btn-active-border-color: #3d165e !important;
+  --bs-btn-active-color: #fff !important;
+}
+
+.btn-orange {
+  --bs-btn-bg: #fd7e14 !important;
+  --bs-btn-border-color: #fd7e14 !important;
+  --bs-btn-color: #fff !important;
+  
+  /* Variables para el estado hover */
+  --bs-btn-hover-bg: #a35300 !important;
+  --bs-btn-hover-border-color: #a35300 !important;
+  --bs-btn-hover-color: #fff !important;
+
+  /* Opcional: evita que vuelva a negro al hacer clic (active) o enfocar (focus) */
+  --bs-btn-active-bg: #9a4c00 !important;
+  --bs-btn-active-border-color: #9a4c00 !important;
+  --bs-btn-active-color: #fff !important;
+}
+
 
 /* .btn-primary {
   --bs-btn-bg: #2a5391 !important;     

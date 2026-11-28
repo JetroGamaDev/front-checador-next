@@ -15,6 +15,8 @@ import PenaltySignatureModal from "./PenaltySignatureModal"
 import PenaltyOneError from "./penaltiesMessageError"
 import ModalBlur from "../ModalBlur"
 import DeletePenaltyModal from "./DeletePenaltyModal"
+import { findLeaderSignature, isLeaderLabel } from "@/lib/leaderSignature"
+import LeaderSlotNote from "../LeaderSlotNote"
 
 
 function fullName(p?: { name?: string; lastName?: string } | null) {
@@ -83,6 +85,20 @@ export function PenaltyOne({
 
         return isRelevantUser && !!currentSignature && hasNotSigned;
     }, [idEmployee, penaltyEmployeeId, currentSignature, hasNotSigned, session, extraGroupAlreadySigned]);
+
+    // ===== Casilla "Líder": la firma el líder o el subgerente, el primero que firme se queda con ella =====
+    const leaderSig = useMemo(() => findLeaderSignature(signatures), [signatures]);
+    const leaderSigned = !!leaderSig?.url;
+    const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER";
+    // El back manda idSubManager = null cuando la penalización es del propio subgerente
+    const isSubManagerOfRecord = !!roles?.isSubManager
+        && penalty?.idSubManager != null
+        && Number(penalty.idSubManager) === idEmployee;
+    // El líder ya lo cubre showCurrentUser (su idSignatory está en la firma "Líder")
+    const showSubManagerSign = !!leaderSig
+        && !leaderSigned
+        && idEmployee !== penaltyEmployeeId
+        && isSubManagerOfRecord;
 
     //Helpers
     const handleBack = () => {
@@ -158,7 +174,7 @@ export function PenaltyOne({
                         </ConditionalRender>
 
                         <OverLay string="Firmar">
-                            <ConditionalRender cond={showCurrentUser}>
+                            <ConditionalRender cond={showCurrentUser || showSubManagerSign}>
                                 <Button
                                     className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 btn-needs-signature"
                                     variant="warning"
@@ -469,6 +485,13 @@ export function PenaltyOne({
                                             name={sign.name}
                                             url={sign.url}
                                             label={sign.label}
+                                            footerExtra={isLeaderLabel(sign.label) ? (
+                                                <LeaderSlotNote
+                                                    pending={!sign.url}
+                                                    bySubManager={leaderBySubManager}
+                                                    subManager={penalty.subManager}
+                                                />
+                                            ) : undefined}
                                         />
                                     ))}
                                 </Row>
@@ -480,6 +503,7 @@ export function PenaltyOne({
                             show={penaltySignatureModal}
                             onHide={() => setPenaltySignatureModal(false)}
                             id={String(penalty?.id)}
+                            title={showSubManagerSign && !showCurrentUser ? "Firma del líder" : undefined}
                         />
 
                         <ConditionalRender cond={showDeleteModal}>

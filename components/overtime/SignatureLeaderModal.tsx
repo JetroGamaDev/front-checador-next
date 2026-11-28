@@ -39,6 +39,8 @@ function SignatureLeaderModal({
     const [, setMessageLoading] = useState("");
     const [feedbackMsg, setFeedbackMsg] = useState("");
     const [feedback, setFeedback] = useState<FeedbackState>(null);
+    // 409: el líder, el subgerente o Dirección ya resolvió la casilla; al cerrar el aviso se recarga el detalle
+    const [conflict, setConflict] = useState(false);
 
     const onSubmit: SubmitHandler<TInputs> = async (data) => {
         modalConfirm("¿Seguro que quieres guardar la firma?", async () => {
@@ -53,6 +55,7 @@ function SignatureLeaderModal({
                 });
 
                 if (!res.success) {
+                    setConflict(res.status === 409);
                     setFeedbackMsg(res.message || "No se pudo mandar la firma");
                     setFeedback("error");
                     return;
@@ -99,7 +102,14 @@ function SignatureLeaderModal({
             <ConditionalRender cond={feedback === "error"}>
                 <ErrorOverlay
                     message={feedbackMsg}
-                    onDone={() => setFeedback(null)}
+                    onDone={() => {
+                        setFeedback(null);
+                        if (conflict) {
+                            setConflict(false);
+                            onHide();
+                            router.refresh();
+                        }
+                    }}
                 />
             </ConditionalRender>
 

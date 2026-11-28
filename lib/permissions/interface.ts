@@ -1,7 +1,8 @@
 import { Employee } from "../definitions";
 import { ISignatures } from "../overTime/interface";
+import { ILeaderSlotFields } from "../leaderSignature";
 
-export interface IPermissionRequest {
+export interface IPermissionRequest extends ILeaderSlotFields {
   _id: string;
   id: number;
   leaderApproval: PermissionRequestStatus;

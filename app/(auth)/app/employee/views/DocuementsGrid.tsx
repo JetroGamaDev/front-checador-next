@@ -296,7 +296,7 @@ function DocumentsGrid({
             <div className="d-flex flex-column justify-content-center gap-1">
               <ConditionalRender cond={selectedFiles.length === 0}>
                 <ConditionalRender cond={doc.exist}>
-                  <Button variant="primary" onClick={handleButtonClick} disabled={feedback === "loading"}>
+                  <Button variant="info" onClick={handleButtonClick} disabled={feedback === "loading"}>
                     Reemplazar
                   </Button>
 
@@ -321,7 +321,7 @@ function DocumentsGrid({
                 </ConditionalRender>
 
                 <ConditionalRender cond={!doc.exist}>
-                  <Button variant="success" onClick={handleButtonClick} disabled={feedback === "loading"}>
+                  <Button variant="primary" onClick={handleButtonClick} disabled={feedback === "loading"}>
                     Cargar
                   </Button>
                 </ConditionalRender>

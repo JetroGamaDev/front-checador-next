@@ -5,6 +5,8 @@ export interface ActionResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+  // Código HTTP del back cuando falla (ej. 409 = otra persona ya resolvió la casilla "Líder")
+  status?: number;
 }
 
 export interface ApiResponse<T> {
@@ -24,6 +26,9 @@ export interface IRolesMe {
   isApproverLeaders: false,
   isApproverDoh: false,
   departmentLeader: IDepartmentLeaderValues;
+  // Subgerente de algún departamento: aprueba/firma la casilla "Líder" (no viene en sesiones viejas)
+  isSubManager?: boolean;
+  departmentSubManager?: IDepartmentLeaderValues;
 }
 
 export interface User {

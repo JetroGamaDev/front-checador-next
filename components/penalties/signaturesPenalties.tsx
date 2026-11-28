@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Card, Col } from "react-bootstrap";
 import Image from "next/image";
 import { fetchSignaturePenalties } from "@/app/actions/penalties-actions";
@@ -21,7 +21,10 @@ function SignaturesViewPenalty({
     idEmployee,
     name,
     label,
+    footerExtra,
 }: {
+    // Texto extra bajo el nombre (casilla "Líder": subgerente)
+    footerExtra?: ReactNode;
     id: number | null;
     idEmployee: string | null;
     name: string;
@@ -139,6 +142,7 @@ function SignaturesViewPenalty({
 
                 <Card.Footer className="text-center fw-semibold text-uppercase small text-break">
                     {name}
+                    {footerExtra}
                 </Card.Footer>
             </Card>
         </Col >

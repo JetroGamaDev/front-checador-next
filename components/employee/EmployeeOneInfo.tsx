@@ -405,7 +405,7 @@ export default function EmployeeDetailsView({
             <OverLay string="Reiniciar verificación en dos pasos">
               <Button
                 className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                variant="outline-danger"
+                variant="purple"
                 onClick={handleResetTwoFactor}
               >
                 <i className="bi bi-shield-x" />
@@ -436,7 +436,7 @@ export default function EmployeeDetailsView({
               <OverLay string="Reiniciar contraseña del sistema">
                 <Button
                   className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3"
-                  variant="outline-danger"
+                  variant="orange"
                   onClick={handleResetPasswordSystem}
                 >
                   <i className="bi bi-key" />
@@ -1517,7 +1517,7 @@ export default function EmployeeDetailsView({
                           ) && (
                               <div className="d-flex justify-content-end mb-4">
                                 <Button
-                                  variant="success"
+                                  variant="primary"
                                   onClick={() => setShowNewDocumentEmployeeModal(true)}
                                 >
                                   <i className="bi bi-file-earmark-plus me-2" />

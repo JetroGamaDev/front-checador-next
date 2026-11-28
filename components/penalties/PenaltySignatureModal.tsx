@@ -23,7 +23,8 @@ function PenaltySignatureModal({
     show,
     onHide,
     id,
-}: ModalBasicProps & { id: string }) {
+    title = "Firma del Empleado",
+}: ModalBasicProps & { id: string; title?: string }) {
     const {
         reset,
         register,
@@ -36,6 +37,8 @@ function PenaltySignatureModal({
     const router = useRouter();
     const [feedbackMsg, setFeedbackMsg] = useState("");
     const [feedback, setFeedback] = useState<FeedbackState>(null);
+    // 409: la firma del líder ya la registró el líder o el subgerente; al cerrar el aviso se recarga el detalle
+    const [conflict, setConflict] = useState(false);
 
     const onSubmit: SubmitHandler<TInputs> = async (data) => {
         onHide();
@@ -53,6 +56,7 @@ function PenaltySignatureModal({
                 });
 
                 if (!res.success) {
+                    setConflict(res.status === 409);
                     setFeedbackMsg(res.message || "No se pudo mandar la firma");
                     setFeedback("error");
                     return;
@@ -99,7 +103,14 @@ function PenaltySignatureModal({
             <ConditionalRender cond={feedback === "error"}>
                 <ErrorOverlay
                     message={feedbackMsg}
-                    onDone={() => setFeedback(null)}
+                    onDone={() => {
+                        setFeedback(null);
+                        if (conflict) {
+                            setConflict(false);
+                            onHide();
+                            router.refresh();
+                        }
+                    }}
                 />
             </ConditionalRender>
 
@@ -112,7 +123,7 @@ function PenaltySignatureModal({
                 size="lg"
             >
                 <Modal.Header closeButton>
-                    <Modal.Title>Firma del Empleado</Modal.Title>
+                    <Modal.Title>{title}</Modal.Title>
                 </Modal.Header>
                 <Form onSubmit={handleSubmit(onSubmit)}>
                     <Modal.Body>

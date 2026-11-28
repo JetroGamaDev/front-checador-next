@@ -21,6 +21,8 @@ import { formatCreatedAt, formatCreatedAtOnlyHours, formatDateMx } from "@/lib/h
 import { IPermissionRequest } from "@/lib/permissions/interface";
 import ModalBlur from "../ModalBlur";
 import DeletePermissionModal from "./DeleteModal";
+import { canUploadLeaderSignature, findLeaderSignature, isLeaderLabel } from "@/lib/leaderSignature";
+import LeaderSlotNote from "../LeaderSlotNote";
 
 
 function fullName(p?: { name?: string; lastName?: string } | null) {
@@ -73,6 +75,7 @@ export default function ShowInfoPermissionRequest({
   const [approveModal, setApproveModal] = useState(false);
   const [signatureModal, setSignatureModal] = useState(false);
   const [employeeSignatureModal, setEmployeeSignatureModal] = useState(false);
+  const [leaderSignatureModal, setLeaderSignatureModal] = useState(false);
   const [permissionPDFModal, setPermissionPDFModal] = useState(false);
   const [showdeletePermissionModal, setShowDeletePermissionModal] = useState(false);
 
@@ -114,13 +117,40 @@ export default function ShowInfoPermissionRequest({
     return sign?.url !== "";
   };
 
+  // ===== Casilla "Líder": la resuelve el líder o el subgerente (solo uno) =====
+  const leaderSig = useMemo(() => findLeaderSignature(signatures), [signatures]);
+  const isOwnRecord = idEmployee === overtimeEmployeeId;
+  const isLeaderOfRecord = !!leaderSig && Number(leaderSig.idSignatory) === idEmployee;
+  // El back manda idSubManager = null cuando la incidencia es del propio subgerente
+  const isSubManagerOfRecord = !!roles?.isSubManager
+    && permission?.idSubManager != null
+    && Number(permission.idSubManager) === idEmployee;
+  const leaderPending = permission?.leaderApproval === "PENDING";
+  const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
+    || permission?.leaderApprovedByRole === "SUBMANAGER";
+
   const showLeaderApprove = useMemo(() => {
-    return (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
-      && idEmployee !== overtimeEmployeeId
+    const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
       && !!currentSignature
-      && hasNotSigned
-      && isPending;
-  }, [session, idEmployee, overtimeEmployeeId, currentSignature, hasNotSigned, isPending]);
+      && hasNotSigned;
+
+    return leaderPending
+      && !isOwnRecord
+      && isPending
+      && (leaderOrExtra || isSubManagerOfRecord);
+  }, [session, currentSignature, hasNotSigned, isPending, leaderPending, isOwnRecord, isSubManagerOfRecord]);
+
+  // Ya aprobada/rechazada pero sin imagen: solo quien la aprobó sube la firma "Líder"
+  const showLeaderSign = canUploadLeaderSignature({
+    meId: idEmployee,
+    isOwn: isOwnRecord,
+    isLeaderOfRecord,
+    leaderPending,
+    leaderSigned: !!leaderSig?.url,
+    hasLeaderSignature: !!leaderSig,
+    leaderApprovedBy: permission?.leaderApprovedBy,
+    leaderApprovedByRole: permission?.leaderApprovedByRole,
+  });
 
 
 
@@ -230,6 +260,19 @@ export default function ShowInfoPermissionRequest({
                 >
                   <i className="bi bi-check-circle" />
                   <span className="d-none d-md-inline ms-2">Aprobar / Rechazar</span>
+                </Button>
+              </OverLay>
+            </ConditionalRender>
+
+            <ConditionalRender cond={showLeaderSign}>
+              <OverLay string="Firmar como líder">
+                <Button
+                  className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 btn-needs-signature"
+                  variant="success"
+                  onClick={() => setLeaderSignatureModal(true)}
+                >
+                  <i className="bi bi-pen-fill" />
+                  <span className="d-none d-md-inline ms-2">Firmar como líder</span>
                 </Button>
               </OverLay>
             </ConditionalRender>
@@ -510,6 +553,13 @@ export default function ShowInfoPermissionRequest({
                           dateApprove={permission.dateApprove}
                           dateApproveDoh={permission.dateApproveDoh}
                           label={sign.label}
+                          footerExtra={isLeaderLabel(sign.label) ? (
+                            <LeaderSlotNote
+                              pending={leaderPending && !sign.url}
+                              bySubManager={leaderBySubManager}
+                              subManager={permission.subManager}
+                            />
+                          ) : undefined}
                         />
                       ))}
                     </Row>
@@ -540,6 +590,14 @@ export default function ShowInfoPermissionRequest({
         show={employeeSignatureModal}
         onHide={() => setEmployeeSignatureModal(false)}
         id={id}
+      />
+
+      {/* Misma subida de firma: el back la coloca en la casilla "Líder" según quién aprobó */}
+      <EmployeeSignatureModal
+        show={leaderSignatureModal}
+        onHide={() => setLeaderSignatureModal(false)}
+        id={id}
+        title="Firma del líder"
       />
 
       <PermissionPDFownload

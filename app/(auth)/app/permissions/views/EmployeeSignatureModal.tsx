@@ -23,7 +23,8 @@ function EmployeeSignatureModal({
   show,
   onHide,
   id,
-}: ModalBasicProps & { id: string }) {
+  title = "Firma del Empleado",
+}: ModalBasicProps & { id: string; title?: string }) {
   const {
     reset,
     register,
@@ -37,6 +38,8 @@ function EmployeeSignatureModal({
   const [, setMessageLoading] = useState("");
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [feedback, setFeedback] = useState<FeedbackState>(null);
+  // 409: la firma del líder ya la registró otra persona; al cerrar el aviso se recarga el detalle
+  const [conflict, setConflict] = useState(false);
 
   const onSubmit: SubmitHandler<TInputs> = async (data) => {
     modalConfirm("¿Seguro que quieres guardar la firma?", async () => {
@@ -49,6 +52,7 @@ function EmployeeSignatureModal({
         });
 
         if (!res.success) {
+          setConflict(res.status === 409);
           setFeedbackMsg(res.message || "No se pudo mandar la firma");
           setFeedback("error");
           return;
@@ -94,7 +98,14 @@ function EmployeeSignatureModal({
       <ConditionalRender cond={feedback === "error"}>
         <ErrorOverlay
           message={feedbackMsg}
-          onDone={() => setFeedback(null)}
+          onDone={() => {
+            setFeedback(null);
+            if (conflict) {
+              setConflict(false);
+              onHide();
+              router.refresh();
+            }
+          }}
         />
       </ConditionalRender>
 
@@ -107,7 +118,7 @@ function EmployeeSignatureModal({
         size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Firma del Empleado</Modal.Title>
+          <Modal.Title>{title}</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleSubmit(onSubmit)}>
           <Modal.Body>

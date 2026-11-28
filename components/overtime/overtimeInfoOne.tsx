@@ -21,6 +21,8 @@ import OverLay from "../templates/OverLay";
 import { formatCreatedAt, formatParseHours, formatDateMx } from "@/lib/helpers";
 import ModalBlur from "../ModalBlur";
 import DeleteOvertimeModal from "./DeleteOvertimeModal";
+import { canUploadLeaderSignature, findLeaderSignature, isLeaderLabel } from "@/lib/leaderSignature";
+import LeaderSlotNote from "../LeaderSlotNote";
 
 
 function fullName(p?: { name?: string; lastName?: string } | null) {
@@ -77,6 +79,7 @@ export function OvertimeOne({
     const [overtimeSignatureModal, setOvertimeSignatureModal] = useState(false);
     const [signatureLeaderModal, setSignatureLeaderModal] = useState(false);
     const [signatureDohModal, setSignatureDohModal] = useState(false);
+    const [leaderOnlySignatureModal, setLeaderOnlySignatureModal] = useState(false);
 
     const handleOvertimeSignature = () => setOvertimeSignatureModal(true);
     const handleSignatureLeader = () => setSignatureLeaderModal(true);
@@ -127,13 +130,40 @@ export function OvertimeOne({
     // Muestra el botón de aprobación para líderes y extras
     // Condiciones: tiene rol de líder o extra, no es el dueño del registro,
     // tiene entrada en signatures, no ha firmado y el registro está pendiente
+    // ===== Casilla "Líder": la resuelve el líder, el subgerente o Dirección (comparten leaderApproval) =====
+    const leaderSig = useMemo(() => findLeaderSignature(signatures), [signatures]);
+    const isOwnRecord = idEmployee === overtimeEmployeeId;
+    const isLeaderOfRecord = !!leaderSig && Number(leaderSig.idSignatory) === idEmployee;
+    // El back manda idSubManager = null cuando el registro es del propio subgerente
+    const isSubManagerOfRecord = !!roles?.isSubManager
+        && overtime?.idSubManager != null
+        && Number(overtime.idSubManager) === idEmployee;
+    const leaderPending = overtime?.leaderApproval === "PENDING";
+    const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
+        || overtime?.leaderApprovedByRole === "SUBMANAGER";
+
     const showCurrentLeader = useMemo(() => {
-        return (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
-            && idEmployee !== overtimeEmployeeId
+        const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
             && !!currentSignature
-            && hasNotSigned
-            && isPending;
-    }, [session, idEmployee, overtimeEmployeeId, currentSignature, hasNotSigned, isPending]);
+            && hasNotSigned;
+
+        return leaderPending
+            && !isOwnRecord
+            && isPending
+            && (leaderOrExtra || isSubManagerOfRecord);
+    }, [session, currentSignature, hasNotSigned, isPending, leaderPending, isOwnRecord, isSubManagerOfRecord]);
+
+    // Ya aprobada/rechazada pero sin imagen: solo quien la aprobó sube la firma "Líder" (si fue Dirección, no aplica)
+    const showLeaderSign = canUploadLeaderSignature({
+        meId: idEmployee,
+        isOwn: isOwnRecord,
+        isLeaderOfRecord,
+        leaderPending,
+        leaderSigned: !!leaderSig?.url,
+        hasLeaderSignature: !!leaderSig,
+        leaderApprovedBy: overtime?.leaderApprovedBy,
+        leaderApprovedByRole: overtime?.leaderApprovedByRole,
+    });
 
     // Muestra el botón de aprobación para el DOH
     // Condiciones: tiene rol DOH, su id coincide con el aprobador DOH configurado en el sistema,
@@ -260,6 +290,23 @@ export function OvertimeOne({
                                 </Button>
                             </ConditionalRender>
                         </OverLay>
+
+                        <ConditionalRender cond={showLeaderSign}>
+                            <OverLay string="Firmar como líder">
+                                <Button
+                                    className="d-inline-flex align-items-center justify-content-center fw-semibold px-2 px-md-3 btn-needs-signature"
+                                    variant="success"
+                                    onClick={() => setLeaderOnlySignatureModal(true)}
+                                    disabled={loading}
+                                >
+                                    <i className="bi bi-pen-fill" />
+
+                                    <span className="d-none d-md-inline ms-2">
+                                        Firmar como líder
+                                    </span>
+                                </Button>
+                            </OverLay>
+                        </ConditionalRender>
 
                         <OverLay string="Firmar de enterado">
                             <ConditionalRender cond={showCurrentDoh}>
@@ -524,6 +571,13 @@ export function OvertimeOne({
                                                     url={sign.url}
                                                     label={sign.label}
                                                     status={overtime.status}
+                                                    footerExtra={isLeaderLabel(sign.label) ? (
+                                                        <LeaderSlotNote
+                                                            pending={leaderPending && !sign.url}
+                                                            bySubManager={leaderBySubManager}
+                                                            subManager={overtime.subManager}
+                                                        />
+                                                    ) : undefined}
                                                 />
                                             ))}
                                         </Row>
@@ -537,6 +591,14 @@ export function OvertimeOne({
                             show={overtimeSignatureModal}
                             onHide={() => setOvertimeSignatureModal(false)}
                             id={String(overtime.id)}
+                        />
+
+                        {/* Misma subida de firma: el back la coloca en la casilla "Líder" según quién aprobó */}
+                        <OvertimeSignatureModal
+                            show={leaderOnlySignatureModal}
+                            onHide={() => setLeaderOnlySignatureModal(false)}
+                            id={String(overtime.id)}
+                            title="Firma del líder"
                         />
 
                         <SignatureLeaderModal

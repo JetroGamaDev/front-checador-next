@@ -10,6 +10,7 @@ import { storeToken } from "@/lib/useToken";
 import { base64ToBlob } from "@/lib/helpers";
 import { auth } from "@/lib/auth";
 import { fetchPagedWithoutCancelled, isOnlyEmployee } from "@/lib/employeeVisibility";
+import { axiosErrorInfo } from "@/lib/leaderSignature";
 
 //Funcion para paginar tiempo extra  
 export async function fetchOverTimeQueries(args: FetchUsersArgs & { search?: string } = {}): Promise<{
@@ -295,11 +296,13 @@ export async function sendSignatureOverTime({
       data: true,
     };
   } catch (error: unknown) {
-    const err = error as Error;
+    // Mensaje del back y código (409 = la firma del líder ya fue registrada)
+    const { message, status } = axiosErrorInfo(error, "Error al obtener información");
 
     return {
       success: false,
-      message: err.message ? err.message : "Error al obtener información",
+      message,
+      status,
       data: false,
     };
   }
@@ -320,12 +323,24 @@ export async function approvedLeaderOvertime({
 
     const { apiToken, apiUrl } = await storeToken();
 
+    // Primero se aprueba y después se sube la firma: el back solo deja subir la firma "Líder"
+    // a quien la aprobó (líder o subgerente), y si otra persona ya ganó la casilla no se sube imagen de más
+    await axios.put(
+      `${apiUrl}/overtime/${id}`,
+      { status },
+      {
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+        },
+      }
+    );
+
     const formData = new FormData();
     const blob = base64ToBlob(signature, "image/png");
 
     formData.append("img", blob, "signature.png");
 
-    const firma = await axios.post(
+    await axios.post(
       `${apiUrl}/overtime/signature/${id}`,
       formData,
       {
@@ -335,24 +350,7 @@ export async function approvedLeaderOvertime({
       }
     );
 
-    const signatureUrl = firma.data?.data ?? firma.data?.url;
-
-    if (!signatureUrl) {
-      throw new Error("No se recibió la URL de la firma");
-    }
-
-    await axios.put(
-      `${apiUrl}/overtime/${id}`,
-      {
-        status,
-        signature: signatureUrl,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-        },
-      }
-    );
+    revalidatePath("/app/overtime");
 
     return {
       success: true,
@@ -360,11 +358,13 @@ export async function approvedLeaderOvertime({
       data: true,
     };
   } catch (error: unknown) {
-    const err = error as Error;
+    // Mensaje del back y código (409 = el líder o el subgerente ya resolvió la casilla)
+    const { message, status: httpStatus } = axiosErrorInfo(error, "Error al obtener información");
 
     return {
       success: false,
-      message: err.message || "Error al obtener información",
+      message,
+      status: httpStatus,
       data: false,
     };
   }
