@@ -14,8 +14,8 @@ import AlertSignaturesPenalty from "./AlertSignatures";
 import { useSessionSnapshot } from "@/hooks/useSessionStore";
 import ModalBlur from "../ModalBlur";
 import DeletePenaltyModal from "./DeletePenaltyModal";
-import SubManagerSignatureCell from "../SubManagerSignatureCell";
-import { isSubManagerListRow } from "@/lib/leaderSignature";
+import { DirectionSignedBadge, directionGroupSigned, LeaderSlotSignatureCell, NotApplicableBadge } from "../SignatureCells";
+import { isSubManagerListRow, isLeaderLabel, normalizeSignatureLabel } from "@/lib/leaderSignature";
 import DatePicker from "react-datepicker";
 import moment from "moment";
 
@@ -321,20 +321,17 @@ export default function PenaltiesTableClient({
                 );
                 const cancelado = row.delete?.delete === true;
 
-                // Subgerente: la casilla "Líder" puede firmarla él o el líder (sin paso de aprobación)
-                if (!mySignature && isSubManagerListRow({
+                // Subgerente: la casilla "Líder" la puede firmar él o el gerente (sin paso de aprobación)
+                const isSubRow = !mySignature && isSubManagerListRow({
                     isSubManager: roles?.isSubManager,
                     meId: idEmployee,
                     ownerId: row.idEmployee ?? row.employee?.id,
                     signatures: row.signatures,
-                })) {
-                    return cancelado
-                        ? <i className="bi bi-slash-circle ms-4" />
-                        : <SubManagerSignatureCell meId={idEmployee} signatures={row.signatures} />;
-                }
+                });
 
-                if (!mySignature) {
-                    return (
+                if (!mySignature && !isSubRow) {
+                    // Dirección ve las penalizaciones de los líderes aunque no le toque firmar esta
+                    return roles?.isExtra ? <NotApplicableBadge /> : (
                         <>
                             <span className="text-muted">Este permiso no corresponde a este perfil</span>
                         </>
@@ -345,8 +342,23 @@ export default function PenaltiesTableClient({
                             <i className="bi bi-slash-circle ms-4" />
                         </>
                     )
+                } else if (isSubRow || isLeaderLabel(mySignature?.label)) {
+                    // Casilla "Líder": palomita con quién firmó (gerente o subgerente), o la ✗ mientras no se firme
+                    return (
+                        <LeaderSlotSignatureCell
+                            signatures={row.signatures}
+                            pendingTitle={isSubRow ? "Pendiente: puedes firmar en lugar del gerente (opcional)" : undefined}
+                        />
+                    );
+                } else if (
+                    normalizeSignatureLabel(mySignature?.label) === "direccion"
+                    && !mySignature?.url
+                    && directionGroupSigned(row.signatures)
+                ) {
+                    // Penalización de un líder: ya firmó otra persona de Dirección (basta con una)
+                    return <DirectionSignedBadge />;
                 } else {
-                    return mySignature.url === "" ? (
+                    return !mySignature?.url ? (
                         <i className="bi bi-x-lg text-danger ms-4" title="Pendiente de tu firma" />
                     ) : (
                         <i className="bi bi-check-lg text-success ms-4" title="Firmado" />

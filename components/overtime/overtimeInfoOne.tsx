@@ -21,7 +21,7 @@ import OverLay from "../templates/OverLay";
 import { formatCreatedAt, formatParseHours, formatDateMx } from "@/lib/helpers";
 import ModalBlur from "../ModalBlur";
 import DeleteOvertimeModal from "./DeleteOvertimeModal";
-import { canUploadLeaderSignature, findLeaderSignature, isLeaderLabel } from "@/lib/leaderSignature";
+import { canUploadLeaderSignature, findLeaderSignature, isLeaderLabel, normalizeSignatureLabel } from "@/lib/leaderSignature";
 import LeaderSlotNote from "../LeaderSlotNote";
 
 
@@ -141,6 +141,8 @@ export function OvertimeOne({
     const leaderPending = overtime?.leaderApproval === "PENDING";
     const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
         || overtime?.leaderApprovedByRole === "SUBMANAGER";
+    // Si la solicitó un líder, el back arma la firma "Dirección" en lugar de "Líder"
+    const leaderSlotTitle = signatures.some((s) => normalizeSignatureLabel(s.label) === "direccion") ? "Dirección" : "Líder";
 
     const showCurrentLeader = useMemo(() => {
         const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
@@ -416,7 +418,7 @@ export function OvertimeOne({
                                             <div className="d-flex align-items-center justify-content-between border-bottom pb-2">
                                                 <div className="d-flex align-items-center gap-2">
                                                     <i className="bi bi-person-workspace text-warning" />
-                                                    <span className="text-muted">Líder</span>
+                                                    <span className="text-muted">{leaderSlotTitle}</span>
                                                 </div>
 
                                                 <span className="fw-semibold text-end">

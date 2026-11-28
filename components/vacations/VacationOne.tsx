@@ -90,8 +90,11 @@ type DayBreakdown = {
 
 export default function ShowInfoVacation({
   vacation,
+  directionIds = [],
 }: {
   vacation: Vacations | null;
+  // Ids de Dirección (configuración): si firman la casilla "Líder", la solicitó un líder
+  directionIds?: number[];
 }) {
   const router = useRouter();
   const session = useSessionSnapshot();
@@ -166,6 +169,8 @@ export default function ShowInfoVacation({
   const leaderPending = vacation?.leaderApproval === "PENDING";
   const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
     || vacation?.leaderApprovedByRole === "SUBMANAGER";
+  // Si la solicitó un líder, la casilla "Líder" la firma Dirección: se muestra como "Dirección"
+  const leaderSlotTitle = !!leaderSig && directionIds.includes(Number(leaderSig.idSignatory)) ? "Dirección" : "Líder";
 
   const showLeaderApprove = useMemo(() => {
     const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
@@ -477,7 +482,7 @@ export default function ShowInfoVacation({
                       <div className="d-flex align-items-center justify-content-between border-bottom pb-2">
                         <div className="d-flex align-items-center gap-2">
                           <i className="bi bi-person-workspace text-warning" />
-                          <span className="text-muted">Líder</span>
+                          <span className="text-muted">{leaderSlotTitle}</span>
                         </div>
                         <span className="fw-semibold text-end">
                           {fullName(vacation.leader)}
@@ -642,7 +647,7 @@ export default function ShowInfoVacation({
                           idEmployee={sign.idSignatory}
                           name={sign.name}
                           status={sign.status}
-                          label={sign.label}
+                          label={isLeaderLabel(sign.label) ? leaderSlotTitle : sign.label}
                           footerExtra={isLeaderLabel(sign.label) ? (
                             <LeaderSlotNote
                               pending={leaderPending && !sign.url}

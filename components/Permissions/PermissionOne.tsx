@@ -61,9 +61,12 @@ function statusVariant(status?: string | null) {
 export default function ShowInfoPermissionRequest({
   permission,
   id,
+  directionIds = [],
 }: {
   permission: IPermissionRequest | null;
   id: string;
+  // Ids de Dirección (configuración): si firman la casilla "Líder", la solicitó un líder
+  directionIds?: number[];
 }) {
   const session = useSessionSnapshot();
   // Sesión real (con isDoh) para la regla de eliminar incidencias propias
@@ -128,6 +131,8 @@ export default function ShowInfoPermissionRequest({
   const leaderPending = permission?.leaderApproval === "PENDING";
   const leaderBySubManager = leaderSig?.signedByRole === "SUBMANAGER"
     || permission?.leaderApprovedByRole === "SUBMANAGER";
+  // Si la solicitó un líder, la casilla "Líder" la firma Dirección: se muestra como "Dirección"
+  const leaderSlotTitle = !!leaderSig && directionIds.includes(Number(leaderSig.idSignatory)) ? "Dirección" : "Líder";
 
   const showLeaderApprove = useMemo(() => {
     const leaderOrExtra = (!!session?.uid?.roles?.isLeader || !!session?.uid?.roles?.isExtra)
@@ -398,7 +403,7 @@ export default function ShowInfoPermissionRequest({
                       <div className="d-flex align-items-center justify-content-between border-bottom pb-2">
                         <div className="d-flex align-items-center gap-2">
                           <i className="bi bi-person-workspace text-warning" />
-                          <span className="text-muted">Líder</span>
+                          <span className="text-muted">{leaderSlotTitle}</span>
                         </div>
                         <span className="fw-semibold text-end">
                           {fullName(permission.leader)}
@@ -552,7 +557,7 @@ export default function ShowInfoPermissionRequest({
                           status={sign.status}
                           dateApprove={permission.dateApprove}
                           dateApproveDoh={permission.dateApproveDoh}
-                          label={sign.label}
+                          label={isLeaderLabel(sign.label) ? leaderSlotTitle : sign.label}
                           footerExtra={isLeaderLabel(sign.label) ? (
                             <LeaderSlotNote
                               pending={leaderPending && !sign.url}
